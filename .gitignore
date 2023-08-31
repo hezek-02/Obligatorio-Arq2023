@@ -1,0 +1,6 @@
+# Archivos de compilación de C y ejecutables
+*.o
+*.out
+
+# Directorios generados por IDE
+.vscode/
