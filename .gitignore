@@ -1,6 +1,7 @@
 # Archivos de compilación de C y ejecutables
-*.o
-*.out
+**.o
+**.out
 
 # Directorios generados por IDE
-.vscode/
+**.vscode/
+**/output
