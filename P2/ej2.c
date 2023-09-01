@@ -12,38 +12,41 @@ char decimalToBCD(char decimal) {
 // representados como enteros sin signo empaquetado (BCD). El resultado se
 // expresa también en BCD.
 
-//nnnn nnnn, xxxx xxxx
+//nnnn nnnn, xxxx xxxx, se puede expandir dado la entrada short, int, long a mas caracteres
 short sumaBCD(char num1, char num2){
-    char num1Uni = num1 & 0x0F;
-    char num2Uni = num2 & 0x0F;
     char carry = 0;
-
-    char sumUnidades = num1Uni + num2Uni;
-    printf("%hhx\n",num1Uni);
-    printf("%hhx\n",num2Uni);
-    printf("%hhx\n",sumUnidades);
-    if (sumUnidades>0x09){
-        sumUnidades -= 0x0A;
-        carry = 1;
+    char shift = 0;
+    short suma[3];
+    for (int h = 0; h < 3; h++){
+        suma[h]=0;
     }
-    printf("%hhx\n",sumUnidades);
-    char num1Dec = num1 >> 4;
-    char num2Dec = num2 >> 4;
-    char sumDecenas = num1Dec + num2Dec;
+    short total = 0;
+    int i = 0;
+
+    while (i<3){
+        shift = 4*i;
+        suma[i] = ((num1  & 0x00FF) >> shift) + ((num2  & 0x00FF) >> shift);  //usar unsigned char o hacer conversion para q no tome complemento a 2
+        suma[i] = suma[i] & 0x000F;  
+        if (carry==1){
+            suma[i]+= 0x0001;
+        }
+        if (suma[i]>0x0009){
+            suma[i]-= 0x000A;
+            carry = 1;
+        }else{
+            carry = 0;
+        }
+        suma[i] = suma[i] << shift;
+        i++;
+    }
+
+    for (int j = 0; j < i; j++){
+        total = total | suma[j];//incluso |
+    }
     
- 
-    if (carry==1){
-        sumDecenas+= 0x01;
-    }
-    if (sumDecenas>0x09){
-        sumDecenas -= 0x0A;
-        carry = 1;
-        return -1;
-    }
-    printf("%hhx\n",sumDecenas);
-    sumDecenas = sumDecenas << 4;
-    return sumUnidades+sumDecenas;
-
+    return total;
+    // printf("%hhx\n",num2Uni);
+    // printf("%hhx\n",sumUnidades);
 }
 
 int main(){
@@ -56,7 +59,7 @@ int main(){
     printf("Ingrese el segundo número (0-99)formato BCD: ");
     scanf("%hhx", &n2);
 
-    printf("\t%02hhX \n",sumaBCD(n1, n2));
+    printf("\t%hX\n",sumaBCD(n1, n2));
 
     //Conversion a Hex, entrada decimal
     printf("Ingrese el primer número (0-99)formato BCD: ");
@@ -68,7 +71,7 @@ int main(){
     n1 = decimalToBCD(n1);
     n2 = decimalToBCD(n2);
 
-    printf("\t%02hhX\n",sumaBCD(n1, n2));
+    printf("\t%hX\n",sumaBCD(n1, n2));
     return 0;
 }
 
