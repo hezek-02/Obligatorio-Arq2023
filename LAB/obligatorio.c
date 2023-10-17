@@ -80,17 +80,19 @@ void agregarNodo(short num, short nodo){ //insertarEnABB
     }
 }
 
-void ImprimirArbol(short nodo, char orden){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor
-    if (orden == 1){
-        ImprimirArbol(nodo+2,orden);
-        ImprimirArbol(nodo+1,orden);
+void imprimirArbol(short nodo, char orden){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor
+    if (nodo < 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+        if (orden == 1 ){
+            imprimirArbol(nodo+2,orden);
+            outputPuertoSalida(AREA_DE_MEMORIA[nodo]);      
+            imprimirArbol(nodo+1,orden);
+        }
+        else if(orden == 0){
+            imprimirArbol(nodo+1,orden);
+            outputPuertoSalida(AREA_DE_MEMORIA[nodo]);      
+            imprimirArbol(nodo+2,orden);
+        }
     }
-    else if(orden == 0){
-        ImprimirArbol(nodo+1,orden);
-        ImprimirArbol(nodo+2,orden);
-    }
-    if (AREA_DE_MEMORIA[nodo] != VACIO)
-        outputPuertoSalida(AREA_DE_MEMORIA[nodo]);
 }
 
 void outputPuertoLog(const short codigo ){//Simula la salida puertoLog/bitácora
@@ -140,7 +142,7 @@ int main() {
                     outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
                 }
                 outputPuertoLog(orden);
-                ImprimirArbol(0,orden);
+                imprimirArbol(0,orden);
                 break;
             }
             case 6: {
