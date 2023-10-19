@@ -62,7 +62,7 @@ void inicializar_memoria(){
     }
 }
 
-void agregarNodo(short num, short nodo){ //insertarEnABB
+void agregarNodo(short num, short nodo){ //insertarEnABB (2)
     if (nodo>=2048){
         outputPuertoLog(CODIGO_ESCRITURA_INVALIDA);
         return;
@@ -80,7 +80,27 @@ void agregarNodo(short num, short nodo){ //insertarEnABB
     }
 }
 
-void imprimirArbol(short nodo, char orden){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor
+short calcularAltura(short nodo){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (3)
+    if (nodo < 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+        short altIzquierda = calcularAltura(nodo+1) + 1;
+        short altDerecha = calcularAltura(nodo+2) + 1;
+        if (altDerecha > altIzquierda)
+            return altDerecha;
+        else
+            return altIzquierda;
+    }else
+        return 0;
+}
+
+short calcularSuma(short nodo){ //Calcular suma (4)
+    short suma = 0;
+    if (nodo < 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+        suma = AREA_DE_MEMORIA[nodo] + calcularSuma(nodo+2) + calcularSuma(nodo+1) ;
+    }
+    return suma;
+}
+
+void imprimirArbol(short nodo, char orden){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (5)
     if (nodo < 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
         if (orden == 1 ){
             imprimirArbol(nodo+2,orden);
@@ -95,12 +115,20 @@ void imprimirArbol(short nodo, char orden){ //imprime el ABb, 1 mayor a menor, 0
     }
 }
 
+void imprimirMemoria(short N){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (5)
+    for (short i = 0; i < N; i++){//modo estático, donde cada posición supone simular
+        outputPuertoSalida(AREA_DE_MEMORIA[i]);   
+    }
+    
+}
+
+
 void outputPuertoLog(const short codigo ){//Simula la salida puertoLog/bitácora
-    printf("%hd:%hd\n", PUERTO_LOG, codigo);
+    printf("Puerto: %hd:%hd\n", PUERTO_LOG, codigo);
 }
 
 void outputPuertoSalida(const short codigo ){//Simula la salida puertoSalida
-    printf("Puerto: %hd, %hd\n", PUERTO_SALIDA, codigo);
+    printf("Puerto: %hd: %hd\n", PUERTO_SALIDA, codigo);
 }
 
 int main() {
@@ -113,48 +141,56 @@ int main() {
 
         switch (eleccion) {
             case 1: {
+                outputPuertoLog(1);
                 inicializar_memoria();
                 break;
             }
             case 2: {
+                outputPuertoLog(2);
                 short num;
                 scanf("%hd", &num);//debe tomar la entrada de PS actual, lo simula con scanf
                 outputPuertoLog(num);
-                // if (num){
-                //     outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
-                // }
+                if (num > 0xFFFF){
+                    outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
+                }
                 
                 agregarNodo(num, 0);
                 break;
             }
             case 3: {
-                printf("Calcular Altura");
+                outputPuertoLog(3);
+                outputPuertoSalida(calcularAltura(0));
                 break;
             }
             case 4: {
-                printf("Calcular Suma");
+                outputPuertoLog(4);
+                outputPuertoSalida(calcularSuma(0));
                 break;
             }
             case 5: {
+                outputPuertoLog(5);
                 short orden = 0;
                 scanf("%hd", &orden);//debe tomar la entrada de PS actual, lo simula con scanf
-                if(orden != 0 || orden != 1){
-                    outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
-                }
                 outputPuertoLog(orden);
+                if (orden != 0 && orden != 1){
+                    outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
+                    break;
+                }
                 imprimirArbol(0,orden);
                 break;
             }
             case 6: {
-                printf("Imprimir Memoria");
+                outputPuertoLog(6);
+                short N = 0;
+                scanf("%hd", &N);//debe tomar la entrada de PS actual, lo simula con scanf
+                imprimirMemoria(N);
                 break;
             }
             case 255: {
-                printf("Detener programa");
+                outputPuertoLog(255);
                 continuarPrograma = 0;
                 break;
             }                        
-
 
             default: {
                 outputPuertoLog(CODIGO_COMANDO_INVALIDO);
