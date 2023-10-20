@@ -5,21 +5,21 @@ CODIGO_PARAMETRO_INVALIDO EQU 2
 CODIGO_ESCRITURA_INVALIDA EQU 4
 CODIGO_NODO_EXISTENTE EQU 8
 ;puertos
-PUERTO_ENTRADA EQU 20
-PUERTO_SALIDA EQU 21
-PUERTO_LOG EQU 22
+
 
 .data  ; Segmento de datos
+	nodoDinamico dw 0
+
 
 .code  ; Segmento de código
 
 .ports ; Definición de puertos
-PUERTO_ENTRADA :
-PUERTO_SALIDA:
-PUERTO_LOG:
+20: 1,0,2,5,2,-1,2,5,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,2,17,2,18,255
+21: 
+22: 64,1,0,0,64,2,5,0,64,2,-1,0,64,2,5,8,64,2,7,0,64,2,8,0,64,2,9,0,64,2,10,0,64,2,11,0,64,2,12,0,64,2,13,0,64,2,14,0,64,2,15,0,64,2,16,0,64,2,17,4,64,2,18,4,64,255,0
 
-.interrupts ; Manejadores de interrupciones
-; Ejemplo interrupcion del timer
-;!INT 8 1
-;  iret
-;!ENDINT
+;PUERTO_ENTRADA EQU 20
+;PUERTO_SALIDA EQU 21
+;PUERTO_LOG EQU 22
+	
+
