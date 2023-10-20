@@ -28,10 +28,17 @@
  *   Detiene la ejecución del programa.
  *
  */
+
+
 //parametros globales
 short AREA_DE_MEMORIA[2048];
 const short VACIO = 0x8000;
 short nodoDinamico = 0; //para parte dinámica
+short modo; //indica modo estático o dinámico
+
+//variables de menú
+unsigned char eleccion ;
+char continuarPrograma = 1;
 
 //puertos
 const short PUERTO_ENTRADA = 20;
@@ -44,11 +51,6 @@ const short CODIGO_COMANDO_INVALIDO = 1;
 const short CODIGO_PARAMETRO_INVALIDO = 2;
 const short CODIGO_ESCRITURA_INVALIDA = 4;
 const short CODIGO_NODO_EXISTENTE = 8;
-
-
-unsigned char eleccion ;
-char continuarPrograma = 1;
-short modo; //indica modo estático o dinámico, comienza en estático
 
 void inicializar_memoria(){
     for (short i = 0; i < 2048; i++){
@@ -209,6 +211,7 @@ int main() {
 
     while (continuarPrograma) {
         outputPuertoLog(64);
+        printf("Puerto: %hd:", PUERTO_ENTRADA);
         scanf("%hhu", &eleccion);
 
         switch (eleccion) {
@@ -217,6 +220,7 @@ int main() {
                 nodoDinamico = 0;
                 inicializar_memoria();
                 short num;
+                printf("Puerto: %hd:", PUERTO_ENTRADA);
                 scanf("%hd", &num);//debe tomar la entrada de PS actual, lo simula con scanf
                 outputPuertoLog(num);
                 if (num != 0 && num != 1){
@@ -230,6 +234,7 @@ int main() {
             case 2: {
                 outputPuertoLog(2);
                 short num;
+                printf("Puerto: %hd:", PUERTO_ENTRADA);
                 scanf("%hd", &num);//debe tomar la entrada de PS actual, lo simula con scanf
                 outputPuertoLog(num);
                 if (num > 0xFFFF){
@@ -262,6 +267,7 @@ int main() {
             case 5: {
                 outputPuertoLog(5);
                 short orden = 0;
+                printf("Puerto: %hd:", PUERTO_ENTRADA);
                 scanf("%hd", &orden);//debe tomar la entrada de PS actual, lo simula con scanf
                 outputPuertoLog(orden);
                 if (orden != 0 && orden != 1){
@@ -279,6 +285,7 @@ int main() {
             case 6: {
                 outputPuertoLog(6);
                 short N = 0;
+                printf("Puerto: %hd:", PUERTO_ENTRADA);
                 scanf("%hd", &N);//debe tomar la entrada de PS actual, lo simula con scanf
                 if (modo == 0){
                     if (N > 2048){
