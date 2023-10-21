@@ -253,13 +253,18 @@ imprimir_arbol:
 
 imprimir_memoria_din_est:
 	CMP SI,AX
-		JNL menuSeleccion
+		JNL fin_imprimir_memoria
 	PUSH AX
 	MOV AX, ES:[SI]
 	OUT PUERTO_SALIDA, AX
 	POP AX
 	ADD SI, 2
 	JMP imprimir_memoria_din_est
+	fin_imprimir_memoria:
+		MOV AX, CODIGO_EXITO
+		OUT PUERTO_LOG, AX
+		JMP menuSeleccion
+
 
 inicializar_memoria: ;iterativo (sirve dinámico y estático)
 	MOV ES:[SI],0x8000
@@ -279,8 +284,10 @@ errorParametroInvalido:
 	JMP menuSeleccion
 
 fin:
-	
+	MOV AX,CODIGO_EXITO 
+	OUT PUERTO_LOG,AX
 .ports ; Definición de puertos
+20: 1,1,2,5,2,-5,2,-4,2,8,6,10,255
 ;20: 1,0,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,1,1,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,255
 ;21: 5,5,-4,60,-10,-32768,-32768,-32768,-80,-32768,-32768,5,1,4,5,1,4,-4,2,-32768,-10,3,-32768,-80,-32768,-32768,60,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768
 ;22: 64,1,0,0,64,2,5,0,64,2,-4,0,64,2,-10,0,64,2,-80,0,64,2,60,0,64,6,0,0,64,6,1,0,64,6,10,0,64,1,1,0,64,2,5,0,64,2,-4,0,64,2,-10,0,64,2,-80,0,64,2,60,0,64,6,0,0,64,6,1,0,64,6,10,0,64,255,0
