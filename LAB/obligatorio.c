@@ -116,7 +116,6 @@ void imprimirMemoria(short N){ //imprime el ABb, 1 mayor a menor, 0 menor a mayo
     for (short i = 0; i < N; i++){//modo estático, donde cada posición supone simular
         outputPuertoSalida(AREA_DE_MEMORIA[i]);   
     }
-    
 }
 //END Modo estático
 
@@ -162,7 +161,6 @@ short calcularAlturaDinamico(short pos){ //imprime el ABb, 1 mayor a menor, 0 me
         return 0;
 }
 
-
 short calcularSumaDinamico(short pos){ //Calcular suma (4)
     short suma = 0;
     if (pos != VACIO && pos <= 2048 && AREA_DE_MEMORIA[pos] != VACIO){
@@ -187,7 +185,7 @@ void imprimirArbolDinamico(short pos, short orden){ //imprime el ABb, 1 mayor a 
 }
 
 void imprimirMemoriaDinamico(short N){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (5)
-    for (short i = 0; i < 3*N; i+=3){//modo estático, donde cada posición supone simular
+    for (short i = 0; i < 3*N; i+=3){
         outputPuertoSalida(AREA_DE_MEMORIA[i]);
         outputPuertoSalida(AREA_DE_MEMORIA[i+1]);
         outputPuertoSalida(AREA_DE_MEMORIA[i+2]);
