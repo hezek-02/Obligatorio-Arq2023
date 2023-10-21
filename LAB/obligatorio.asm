@@ -9,7 +9,7 @@ PUERTO_ENTRADA EQU 20;
 PUERTO_SALIDA EQU 21;
 PUERTO_LOG EQU 22;
 .data  ; Segmento de datos
-	;#define ES 0x0500
+	#define ES 0x0500
 	nodoDinamico dw 0 ;indica el nodoActual (el último) en el modo dinámico
 	modo dw 0 ;comienza en estático, indica el modo del árbol
 .code  ; Segmento de código
@@ -73,6 +73,11 @@ agregarNodoEstatico PROC
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
+	MOV CX,AX
+	MOV AX,SI
+	OUT PUERTO_LOG,AX
+	MOV AX,CX
+
 	CMP ES:[SI],0x8000	
 		JE	insertar
 	CMP BP,2048
@@ -92,12 +97,12 @@ agregarNodoEstatico PROC
 		JMP finalizarRecursion
 	insercion_der:
 		ADD SI,SI
-		ADD SI,2
+		ADD SI,3
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
 	insercion_izq:
 		ADD SI,SI
-		INC SI
+		ADD SI,2
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
 	insertar:
@@ -114,52 +119,7 @@ agregarNodoEstatico PROC
 agregarNodoEstatico ENDP
 
 agregarNodoDinamico PROC
-	PUSH AX ;ES:[BP + 4]
-	PUSH SI ;ES:[BP + 2]
-	PUSH BP
-	MOV BP,SP
-
-	MOV SI,[BP+2] ;desplz 
-	MOV AX,[BP+4] ;nro a insertar
-
-	CMP ES:[SI],0x8000	
-		JE	insertar
-	CMP BP,2048
-		JGE error_excede
-	CMP AX, ES:[SI]
-		JG	insercion_der ;>
-	;CMP AX,ES:[CX]
-		JL	insercion_izq ;<
-	JMP error_ya_existe;==
-	error_excede:
-		MOV AX,CODIGO_ESCRITURA_INVALIDA
-		OUT PUERTO_LOG,AX
-		JMP finalizarRecursion
-	error_ya_existe:
-		MOV AX,CODIGO_NODO_EXISTENTE
-		OUT PUERTO_LOG,AX
-		JMP finalizarRecursion
-	insercion_der:
-		ADD SI,SI
-		ADD SI,2
-		CALL agregarNodoEstatico
-		JMP finalizarRecursion
-	insercion_izq:
-		ADD SI,SI
-		INC SI
-		CALL agregarNodoEstatico
-		JMP finalizarRecursion
-	insertar:
-		MOV	ES:[SI],AX ;agrega el nodo
-		MOV AX,CODIGO_EXITO  
-		OUT PUERTO_LOG,AX
-		JMP finalizarRecursion
-
-	finalizarRecursion:
-		POP BP
-		POP SI
-		POP AX
-		RET			
+	RET
 agregarNodoDinamico ENDP
 
 calcular_altura:
@@ -180,6 +140,8 @@ inicializar_memoria: ;iterativo (sirve dinámico y estático)
 	MOV AX,CODIGO_EXITO 
 	OUT PUERTO_LOG,AX
 	JMP	menuSeleccion
+
+
 fin:
 	
 .ports ; Definición de puertos
