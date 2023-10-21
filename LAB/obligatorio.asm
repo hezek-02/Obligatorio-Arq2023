@@ -50,6 +50,7 @@ cambiar_modo:
 agregar_nodo:
 	XOR SI,SI ; parametro de nro de pos/nodo
 	IN AX,PUERTO_ENTRADA
+	OUT PUERTO_LOG,AX ; imprime parámetro de entrada
 	CMP word ptr DS:[modo],0
 		JE agregarNodoEst
 	CMP word ptr DS:[modo],0
@@ -73,19 +74,21 @@ agregarNodoEstatico PROC
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
-	MOV CX,AX
-	MOV AX,SI
-	OUT PUERTO_LOG,AX
-	MOV AX,CX
+	;debug
+	;MOV CX,AX
+	;MOV AX,ES:[SI]
+	;OUT PUERTO_LOG,AX
+	;MOV AX,CX
+	;OUT PUERTO_LOG,AX
 
 	CMP ES:[SI],0x8000	
 		JE	insertar
-	CMP BP,2048
-		JGE error_excede
-	CMP AX, ES:[SI]
-		JG	insercion_der ;>
-	;CMP AX,ES:[CX]
-		JL	insercion_izq ;<
+	CMP SI, 2048; no se considera signo
+		JG error_excede
+	CMP AX, ES:[SI]; se considera signo
+		JNLE insercion_der ;>
+	;CMP AX,ES:[SI]
+		JL 	insercion_izq ;<
 	JMP error_ya_existe;==
 	error_excede:
 		MOV AX,CODIGO_ESCRITURA_INVALIDA
@@ -97,7 +100,7 @@ agregarNodoEstatico PROC
 		JMP finalizarRecursion
 	insercion_der:
 		ADD SI,SI
-		ADD SI,3
+		ADD SI,4
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
 	insercion_izq:
@@ -135,12 +138,12 @@ inicializar_memoria: ;iterativo (sirve dinámico y estático)
 	ADD SI,2;pasos de offset 2 bytes
 	CMP SI,2048 ;compara si ha llenado toda el area de memoria
 		JLE inicializar_memoria 
-	MOV AX,SI
-	OUT PUERTO_LOG,AX
+	;debug
+	;MOV AX,SI
+	;OUT PUERTO_LOG,AX
 	MOV AX,CODIGO_EXITO 
 	OUT PUERTO_LOG,AX
 	JMP	menuSeleccion
-
 
 fin:
 	
