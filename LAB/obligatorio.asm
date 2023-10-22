@@ -95,7 +95,7 @@ imprimir_memoria:
 
 imprimir_arbol:
 	XOR SI,SI
-
+	MOV CL, 2
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (orden)
 
@@ -302,9 +302,14 @@ imprimir_arbol_dinamico PROC
 		JE imprimir_menor_a_mayor_dinamico ;<
 
 	imprimir_menor_a_mayor_dinamico:
-		SHL SI,1
-		ADD SI,2
-		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1)-1,orden);
+
+		MOV BX, ES:[SI+2] 
+		SHL BX, CL ; multiplico por 4
+		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
+		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
+		MOV SI,BX
+
+		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
 
 		PUSH AX
 		MOV SI, [BP+2]
@@ -312,25 +317,38 @@ imprimir_arbol_dinamico PROC
 		OUT PUERTO_SALIDA,AX
 		POP AX
 
-		SHL SI,1
-		ADD SI,4
-		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1),orden);
+		MOV BX, ES:[SI+4]
+		SHL BX, CL ; multiplico por 4
+		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
+		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
+		MOV SI,BX
+
+		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
 
 		JMP finalizar_recursion_imprimir_dinamico
 	imprimir_mayor_a_menor_dinamico:
-		SHL SI,1
-		ADD SI,4
-		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1),orden);
-		
+
+		MOV BX, ES:[SI+4] 
+		SHL BX, CL ; multiplico por 4
+		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+		MOV SI,BX
+
+		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
+
 		PUSH AX
 		MOV SI, [BP+2]
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
 
-		SHL SI,1
-		ADD SI,2
-		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1)-1,orden);
+		MOV BX, ES:[SI+2]
+		SHL BX, CL ; multiplico por 4
+		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
+		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
+		MOV SI,BX
+
+		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
 
 		JMP finalizar_recursion_imprimir_dinamico
 	finalizar_recursion_imprimir_dinamico:
