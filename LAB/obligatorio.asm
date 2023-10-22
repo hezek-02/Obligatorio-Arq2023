@@ -311,8 +311,6 @@ agregarNodoDinamico PROC
 		POP SI
 		POP AX
 		RET			
-
-	RET
 agregarNodoDinamico ENDP
 
 calcular_altura_dinamico PROC
@@ -328,25 +326,44 @@ calcular_altura_dinamico PROC
     ; Calcular alturas de las subárboles izquierdo y derecho
    	INC BX ;altDerecha
 	
-	SHL SI,1
-	ADD SI,4
+	PUSH BX
+	MOV BX, ES:[SI+4] 
+	CMP BX, 0x8000
+		JE saltar_ejec_altura_der
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	MOV SI,BX
+
     CALL calcular_altura_dinamico
 	
+	saltar_ejec_altura_der:
+	MOV SI, [BP+2]
+
+	POP BX
+	PUSH BX
+	MOV BX, ES:[SI+4] 
+	CMP BX, 0x8000
+		JE saltar_ejec_altura_izq
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	MOV SI,BX
 	MOV SI,[BP+2]
 
   	INC DX ;altIzq
-	
-	SHL SI,1
-	ADD SI,2
+
     CALL calcular_altura_dinamico
 
+	saltar_ejec_altura_izq:
+	POP BX
     ; Comparar alturas y retornar la mayor
     CMP BX, DX
-    	JG mayor_es_derecho_din
+    	JG mayor_es_derecho
     MOV AX, DX ; Retornar altIzquierda
     JMP fin_altura_dinamico
 
-	mayor_es_derecho_din:
+	mayor_es_derecho:
     MOV AX, BX ; Retornar altDerecha
 
 	fin_altura_dinamico:
@@ -368,29 +385,10 @@ calcular_altura_estatico PROC
     ; Calcular alturas de las subárboles izquierdo y derecho
    	INC BX ;altDerecha
 	
-	PUSH BX
-	MOV BX, ES:[SI+4] 
-	CMP BX, 0x8000
-		JE saltar_ejec_altura_der
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	MOV SI,BX
-
+	SHL SI,1
+	ADD SI,4
     CALL calcular_altura_estatico
 	
-	saltar_ejec_altura_der:
-	MOV SI, [BP+2]
-
-	POP BX
-	PUSH BX
-	MOV BX, ES:[SI+4] 
-	CMP BX, 0x8000
-		JE saltar_ejec_altura_izq
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	MOV SI,BX
 	MOV SI,[BP+2]
 
   	INC DX ;altIzq
@@ -398,21 +396,20 @@ calcular_altura_estatico PROC
 	SHL SI,1
 	ADD SI,2
     CALL calcular_altura_estatico
-	saltar_ejec_altura_izq:
-	POP BX
+
     ; Comparar alturas y retornar la mayor
     CMP BX, DX
-    	JG mayor_es_derecho
+    	JG mayor_es_derecho_estatico
     MOV AX, DX ; Retornar altIzquierda
     JMP fin_altura_estatico
 
-	mayor_es_derecho:
+	mayor_es_derecho_estatico:
     MOV AX, BX ; Retornar altDerecha
 
 	fin_altura_estatico:
     	POP BP
 		POP SI
-    	RET
+    	RET	
 calcular_altura_estatico ENDP
 		
 calcular_suma_dinamico PROC
@@ -564,7 +561,6 @@ imprimir_arbol_dinamico PROC
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
 
-
 	finalizar_recursion_imprimir_dinamico:
 		POP BP
 		POP SI
@@ -581,11 +577,6 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;orden
-
-	;PUSH AX
-	;MOV AX, SI
-	;OUT PUERTO_SALIDA,AX
-	;POP AX
 
 	CMP ES:[SI],0x8000	
 		JE	finalizar_recursion_imprimir
@@ -669,9 +660,8 @@ fin:
 	MOV AX,CODIGO_EXITO 
 	OUT PUERTO_LOG,AX
 
-
 .ports ; Definición de puertos
-20: 1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
 ;21: 0,0,1,1,5,6
 ;22: 64,1,0,0,64,3,0,64,1,1,0,64,3,0,64,1,0,0,64,2,4,0,64,3,0,64,1,1,0,64,2,5,0,64,3,0,64,1,0,0,64,2,100,0,64,2,128,0,64,2,60,0,64,2,40,0,64,2,20,0,64,2,22,0,64,3,0,64,1,1,0,64,2,50,0,64,2,40,0,64,2,30,0,64,2,45,0,64,2,46,0,64,2,47,0,64,2,48,0,64,3,0,64,255,0
 ;CU: test altura
