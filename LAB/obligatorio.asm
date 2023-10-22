@@ -40,15 +40,15 @@ menuSeleccion:
 	OUT PUERTO_LOG,AX
 	JMP menuSeleccion
 
-cambiar_modo:
+;definiciones de llamadas
+cambiar_modo:;1
 	MOV word ptr DS:[nodoDinamico],0 ; resetea siempre el último nodo registrado 
 	IN  AX,PUERTO_ENTRADA ; obtiene parametro
 	OUT PUERTO_LOG,AX ; imprime parametro
 	MOV word ptr DS:[modo],AX ; actualiza modo según parametro
 	JMP inicializar_memoria
 
-;definiciones de llamadas
-agregar_nodo:
+agregar_nodo:;2
 	XOR SI,SI ; parametro de nro de pos/nodo
 
 	IN AX,PUERTO_ENTRADA
@@ -66,34 +66,53 @@ agregar_nodo:
 		CALL agregarNodoDinamico
 		JMP menuSeleccion
 
-imprimir_memoria:
+calcular_altura:;3
 	XOR SI,SI
-
-	IN AX,PUERTO_ENTRADA
-	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (N)
-
-	CMP word ptr DS:[modo], 0
-		JE imprimir_memoriaEstaticoPrev
-	CMP word ptr DS:[modo], 1
-		JE imprimir_memoriaDinamicoPrev
+	XOR AX,AX
+	XOR BX,BX
+	XOR DX,DX
+	MOV CX,2
+	CMP word ptr DS:[modo],0
+		JE calcular_altura_estaticoPrev
+	CMP word ptr DS:[modo],1
+		JE calcular_altura_dinamicoPrev
 	JMP errorParametroInvalido
-	imprimir_memoriaEstaticoPrev:
-		CMP AX, 2048
-			JNLE errorParametroInvalido
-		SHL AX, 1
-		JMP imprimir_memoria_din_est
-	imprimir_memoriaDinamicoPrev:
-		CMP AX,682
-			JNLE errorParametroInvalido
-		MOV CX, 2 ; mul 6
-		MOV BX, AX
-		SHL AX, CL; mul 4
-		ADD AX,BX
-		ADD AX,BX;fin mul 6
-		
-		JMP imprimir_memoria_din_est
+	calcular_altura_estaticoPrev:
+		CALL calcular_altura_estatico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+	calcular_altura_dinamicoPrev:
+		CALL calcular_altura_dinamico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
 
-imprimir_arbol:
+calcular_suma:;4
+	XOR SI,SI
+	XOR AX,AX
+	MOV CX,2
+	CMP word ptr DS:[modo],0
+		JE calcular_suma_estaticoPrev
+	CMP word ptr DS:[modo],1
+		JE calcular_suma_dinamicoPrev
+	JMP errorParametroInvalido
+	calcular_suma_estaticoPrev:
+		CALL calcular_suma_estatico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+	calcular_suma_dinamicoPrev:
+		CALL calcular_suma_dinamico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+
+imprimir_arbol:;5
 	XOR SI,SI
 	MOV CX, 2
 	IN AX,PUERTO_ENTRADA
@@ -123,6 +142,34 @@ imprimir_arbol:
 		OUT PUERTO_LOG,AX
 		JMP menuSeleccion
 
+
+imprimir_memoria:;6
+	XOR SI,SI
+
+	IN AX,PUERTO_ENTRADA
+	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (N)
+
+	CMP word ptr DS:[modo], 0
+		JE imprimir_memoriaEstaticoPrev
+	CMP word ptr DS:[modo], 1
+		JE imprimir_memoriaDinamicoPrev
+	JMP errorParametroInvalido
+	imprimir_memoriaEstaticoPrev:
+		CMP AX, 2048
+			JNLE errorParametroInvalido
+		SHL AX, 1
+		JMP imprimir_memoria_din_est
+	imprimir_memoriaDinamicoPrev:
+		CMP AX,682
+			JNLE errorParametroInvalido
+		MOV CX, 2 ; mul 6
+		MOV BX, AX
+		SHL AX, CL; mul 4
+		ADD AX,BX
+		ADD AX,BX;fin mul 6
+		
+		JMP imprimir_memoria_din_est
+
 ;implementaciones de CU's
 agregarNodoEstatico PROC
 	PUSH AX ;ES:[BP + 4]
@@ -132,13 +179,6 @@ agregarNodoEstatico PROC
 
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
-
-	;debug
-	;MOV CX,AX
-	;MOV AX,ES:[SI]
-	;OUT PUERTO_LOG,AX
-	;MOV AX,CX
-	;OUT PUERTO_LOG,AX
 
 	CMP ES:[SI],0x8000	
 		JE	insertar
@@ -189,11 +229,6 @@ agregarNodoDinamico PROC
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
-	;debug
-	;MOV CX,AX
-	;MOV AX,SI
-	;OUT PUERTO_LOG,AX
-	;MOV AX,CX
 	MOV CX, 2; para multiplicar por 4, SHL
 
 	CMP ES:[SI],0x8000	
@@ -275,39 +310,113 @@ agregarNodoDinamico PROC
 	RET
 agregarNodoDinamico ENDP
 
-calcular_altura:
+calcular_altura_dinamico PROC
+	PUSH SI
+    PUSH BP
+    MOV BP, SP
 
-calcular_suma:
-	XOR SI,SI
-	XOR AX,AX
-	MOV CX,2
-	CMP word ptr DS:[modo],0
-		JE calcular_suma_estaticoPrev
-	CMP word ptr DS:[modo],1
-		JE calcular_suma_dinamicoPrev
-	JMP errorParametroInvalido
-	calcular_suma_estaticoPrev:
-		CALL calcular_suma_estatico
-		OUT PUERTO_SALIDA,AX
-		MOV AX,CODIGO_EXITO 
-		OUT PUERTO_LOG,AX
-		JMP menuSeleccion
-	calcular_suma_dinamicoPrev:
-		CALL calcular_suma_dinamico
-		OUT PUERTO_SALIDA,AX
-		MOV AX,CODIGO_EXITO 
-		OUT PUERTO_LOG,AX
-		JMP menuSeleccion
+    MOV SI, [BP + 2]
+
+    CMP ES:[SI], 0x8000
+    	JE fin_altura_dinamico
+
+    ; Calcular alturas de las subárboles izquierdo y derecho
+   	INC BX ;altDerecha
+	
+	SHL SI,1
+	ADD SI,4
+    CALL calcular_altura_dinamico
+	
+	MOV SI,[BP+2]
+
+  	INC DX ;altIzq
+	
+	SHL SI,1
+	ADD SI,2
+    CALL calcular_altura_dinamico
+
+    ; Comparar alturas y retornar la mayor
+    CMP BX, DX
+    	JG mayor_es_derecho_din
+    MOV AX, DX ; Retornar altIzquierda
+    JMP fin_altura_dinamico
+
+	mayor_es_derecho_din:
+    MOV AX, BX ; Retornar altDerecha
+
+	fin_altura_dinamico:
+    	POP BP
+		POP SI
+    	RET
+calcular_altura_dinamico ENDP
+
+calcular_altura_estatico PROC
+	PUSH SI
+    PUSH BP
+    MOV BP, SP
+
+    MOV SI, [BP + 2]
+
+    CMP ES:[SI], 0x8000
+    	JE fin_altura_estatico
+
+    ; Calcular alturas de las subárboles izquierdo y derecho
+   	INC BX ;altDerecha
+	
+	PUSH BX
+	MOV BX, ES:[SI+4] 
+	CMP BX, 0x8000
+		JE saltar_ejec_altura_der
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	MOV SI,BX
+
+    CALL calcular_altura_estatico
+	
+	saltar_ejec_altura_der:
+	MOV SI, [BP+2]
+
+	POP BX
+	PUSH BX
+	MOV BX, ES:[SI+4] 
+	CMP BX, 0x8000
+		JE saltar_ejec_altura_izq
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	MOV SI,BX
+	MOV SI,[BP+2]
+
+  	INC DX ;altIzq
+	
+	SHL SI,1
+	ADD SI,2
+    CALL calcular_altura_estatico
+	saltar_ejec_altura_izq:
+	POP BX
+    ; Comparar alturas y retornar la mayor
+    CMP BX, DX
+    	JG mayor_es_derecho
+    MOV AX, DX ; Retornar altIzquierda
+    JMP fin_altura_estatico
+
+	mayor_es_derecho:
+    MOV AX, BX ; Retornar altDerecha
+
+	fin_altura_estatico:
+    	POP BP
+		POP SI
+    	RET
+calcular_altura_estatico ENDP
 		
 calcular_suma_dinamico PROC
 
 	PUSH SI ;ES:[BP + 2]
 	PUSH BP
 	MOV BP,SP
-	PUSH AX 
 
 	MOV SI,[BP+2] ;desplz 
-	POP AX
 
 	CMP ES:[SI], 0x8000
 		JE fin_suma_dinamica
@@ -347,11 +456,8 @@ calcular_suma_estatico PROC
 	PUSH SI ;ES:[BP + 2]
 	PUSH BP
 	MOV BP,SP
-	PUSH AX
 
 	MOV SI,[BP+2] ;desplz 
-	POP AX
-	MOV SP,BP
 
 	CMP ES:[SI], 0x8000
 		JE fin_suma_estatica
@@ -560,7 +666,12 @@ fin:
 
 
 .ports ; Definición de puertos
-20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
+20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+;21: 0,0,1,1,5,6
+;22: 64,1,0,0,64,3,0,64,1,1,0,64,3,0,64,1,0,0,64,2,4,0,64,3,0,64,1,1,0,64,2,5,0,64,3,0,64,1,0,0,64,2,100,0,64,2,128,0,64,2,60,0,64,2,40,0,64,2,20,0,64,2,22,0,64,3,0,64,1,1,0,64,2,50,0,64,2,40,0,64,2,30,0,64,2,45,0,64,2,46,0,64,2,47,0,64,2,48,0,64,3,0,64,255,0
+;CU: test altura
+
+;20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
 ;21: 530,540
 ;22: 64,1,0,0,64,2,100,0,64,2,200,0,64,2,50,0,64,2,30,0,64,2,150,0,64,4,0,64,1,1,0,64,2,102,0,64,2,202,0,64,2,52,0,64,2,32,0,64,2,152,0,64,4,0,64,255,0
 ;CU: test suma
