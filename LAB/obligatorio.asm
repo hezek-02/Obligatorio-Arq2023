@@ -278,6 +278,102 @@ agregarNodoDinamico ENDP
 calcular_altura:
 
 calcular_suma:
+	XOR SI,SI
+	XOR AX,AX
+	MOV CX,2
+	CMP word ptr DS:[modo],0
+		JE calcular_suma_estaticoPrev
+	CMP word ptr DS:[modo],1
+		JE calcular_suma_dinamicoPrev
+	JMP errorParametroInvalido
+	calcular_suma_estaticoPrev:
+		CALL calcular_suma_estatico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+	calcular_suma_dinamicoPrev:
+		CALL calcular_suma_dinamico
+		OUT PUERTO_SALIDA,AX
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+		
+calcular_suma_dinamico PROC
+
+	PUSH SI ;ES:[BP + 2]
+	PUSH BP
+	MOV BP,SP
+	PUSH AX 
+
+	MOV SI,[BP+2] ;desplz 
+	POP AX
+
+	CMP ES:[SI], 0x8000
+		JE fin_suma_dinamica
+
+	ADD AX,ES:[SI]
+
+	MOV BX, ES:[SI+4] 
+	CMP BX, 0x8000
+		JE saltar_ejec_suma
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	MOV SI,BX
+
+	CALL calcular_suma_dinamico
+	
+	saltar_ejec_suma:
+
+	MOV SI, [BP+2]
+	MOV BX, ES:[SI+2] 
+	CMP BX, 0x8000
+		JE fin_suma_dinamica
+	SHL BX, CL ; multiplico por 4
+	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
+	MOV SI,BX
+
+	CALL calcular_suma_dinamico
+
+	fin_suma_dinamica:
+		POP BP
+		POP SI
+		RET
+calcular_suma_dinamico ENDP
+
+calcular_suma_estatico PROC
+	PUSH SI ;ES:[BP + 2]
+	PUSH BP
+	MOV BP,SP
+	PUSH AX
+
+	MOV SI,[BP+2] ;desplz 
+	POP AX
+	MOV SP,BP
+
+	CMP ES:[SI], 0x8000
+		JE fin_suma_estatica
+	
+	ADD AX,ES:[SI]
+
+	SHL SI,1
+	ADD SI,2
+
+	CALL calcular_suma_estatico
+
+	MOV SI, [BP+2]
+	SHL SI,1
+	ADD SI,4
+
+	CALL calcular_suma_estatico
+
+	fin_suma_estatica:
+		POP BP
+		POP SI
+		RET
+calcular_suma_estatico ENDP
 
 imprimir_arbol_dinamico PROC
 	PUSH AX ;ES:[BP + 4]
@@ -464,7 +560,12 @@ fin:
 
 
 .ports ; Definición de puertos
-20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
+20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
+;21: 530,540
+;22: 64,1,0,0,64,2,100,0,64,2,200,0,64,2,50,0,64,2,30,0,64,2,150,0,64,4,0,64,1,1,0,64,2,102,0,64,2,202,0,64,2,52,0,64,2,32,0,64,2,152,0,64,4,0,64,255,0
+;CU: test suma
+
+;20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
 ;21: 4,5,128,100,60,40,22,20,20,22,40,60,100,128,30,40,45,46,47,48,50,50,48,47,46,45,40,30
 ;22: 64,1,0,0,64,5,1,0,64,1,1,0,64,5,1,0,64,1,0,0,64,2,4,0,64,5,1,0,64,1,1,0,64,2,5,0,64,5,1,0,64,1,0,0,64,2,100,0,64,2,128,0,64,2,60,0,64,2,40,0,64,2,20,0,64,2,22,0,64,5,1,0,64,5,0,0,64,1,1,0,64,2,50,0,64,2,40,0,64,2,30,0,64,2,45,0,64,2,46,0,64,2,47,0,64,2,48,0,64,5,0,0,64,5,1,0,64,255,0
 ;CU: test imprimir
