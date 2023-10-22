@@ -107,10 +107,11 @@ imprimir_arbol:
 
 	imprimir_arbol_Prev:
 		CMP word ptr DS:[modo],0
-			JE imprimir_arbol_dinamicoPrev
-		CMP word ptr DS:[modo],1
 			JE imprimir_arbol_estaticoPrev
+		CMP word ptr DS:[modo],1
+			JE imprimir_arbol_dinamicoPrev
 	JMP errorParametroInvalido
+
 	imprimir_arbol_dinamicoPrev:
 		CALL imprimir_arbol_dinamico
 		MOV AX,CODIGO_EXITO 
@@ -278,9 +279,7 @@ calcular_altura:
 
 calcular_suma:
 
-imprimir_arbol_dinamico:
-
-imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
+imprimir_arbol_dinamico PROC
 	PUSH AX ;ES:[BP + 4]
 	PUSH SI ;ES:[BP + 2]
 	PUSH BP
@@ -288,6 +287,73 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;orden
+
+	;PUSH AX
+	;MOV AX, SI
+	;OUT PUERTO_SALIDA,AX
+	;POP AX
+
+	CMP ES:[SI],0x8000	
+		JE	finalizar_recursion_imprimir_dinamico
+	
+	CMP AX, 1 ; mayor a menor
+		JE imprimir_mayor_a_menor_dinamico ;>
+	CMP AX,0 ;menor a mayor
+		JE imprimir_menor_a_mayor_dinamico ;<
+
+	imprimir_menor_a_mayor_dinamico:
+		SHL SI,1
+		ADD SI,2
+		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1)-1,orden);
+
+		PUSH AX
+		MOV SI, [BP+2]
+		MOV AX, ES:[SI]
+		OUT PUERTO_SALIDA,AX
+		POP AX
+
+		SHL SI,1
+		ADD SI,4
+		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1),orden);
+
+		JMP finalizar_recursion_imprimir_dinamico
+	imprimir_mayor_a_menor_dinamico:
+		SHL SI,1
+		ADD SI,4
+		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1),orden);
+		
+		PUSH AX
+		MOV SI, [BP+2]
+		MOV AX, ES:[SI]
+		OUT PUERTO_SALIDA,AX
+		POP AX
+
+		SHL SI,1
+		ADD SI,2
+		CALL imprimir_arbol_dinamico;imprimirArbol(2*(nodo+1)-1,orden);
+
+		JMP finalizar_recursion_imprimir_dinamico
+	finalizar_recursion_imprimir_dinamico:
+		POP BP
+		POP SI
+		POP AX
+		RET
+imprimir_arbol_dinamico ENDP
+
+imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
+	
+	PUSH AX ;ES:[BP + 4]
+	PUSH SI ;ES:[BP + 2]
+	PUSH BP
+	MOV BP,SP
+
+	MOV SI,[BP+2] ;desplz 
+	MOV AX,[BP+4] ;orden
+
+	;PUSH AX
+	;MOV AX, SI
+	;OUT PUERTO_SALIDA,AX
+	;POP AX
 
 	CMP ES:[SI],0x8000	
 		JE	finalizar_recursion_imprimir
@@ -301,31 +367,33 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 		SHL SI,1
 		ADD SI,2
 		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
+
 		PUSH AX
-		PUSH SI
 		MOV SI, [BP+2]
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
-		POP SI
 		POP AX
+
 		SHL SI,1
 		ADD SI,4
 		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
+
 		JMP finalizar_recursion_imprimir
 	imprimir_mayor_a_menor_estatico:
 		SHL SI,1
 		ADD SI,4
-		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
+		
 		PUSH AX
-		PUSH SI
 		MOV SI, [BP+2]
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
-		POP SI
 		POP AX
+
 		SHL SI,1
 		ADD SI,2
-		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
+
 		JMP finalizar_recursion_imprimir
 	finalizar_recursion_imprimir:
 		POP BP
