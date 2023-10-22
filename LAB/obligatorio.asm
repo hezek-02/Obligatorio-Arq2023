@@ -95,7 +95,7 @@ imprimir_memoria:
 
 imprimir_arbol:
 	XOR SI,SI
-	MOV CL, 2
+	MOV CX, 2
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (orden)
 
@@ -288,11 +288,6 @@ imprimir_arbol_dinamico PROC
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;orden
 
-	;PUSH AX
-	;MOV AX, SI
-	;OUT PUERTO_SALIDA,AX
-	;POP AX
-
 	CMP ES:[SI],0x8000	
 		JE	finalizar_recursion_imprimir_dinamico
 	
@@ -304,20 +299,26 @@ imprimir_arbol_dinamico PROC
 	imprimir_menor_a_mayor_dinamico:
 
 		MOV BX, ES:[SI+2] 
+		CMP BX, 0x8000
+			JE saltar_ejec_menor_a_mayor
 		SHL BX, CL ; multiplico por 4
 		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
 		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
 		MOV SI,BX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
-
+		
+		saltar_ejec_menor_a_mayor:
+		
 		PUSH AX
 		MOV SI, [BP+2]
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
-
+		
 		MOV BX, ES:[SI+4]
+		CMP BX, 0x8000
+			JE finalizar_recursion_imprimir_dinamico
 		SHL BX, CL ; multiplico por 4
 		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
 		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
@@ -327,15 +328,19 @@ imprimir_arbol_dinamico PROC
 
 		JMP finalizar_recursion_imprimir_dinamico
 	imprimir_mayor_a_menor_dinamico:
-
+		
 		MOV BX, ES:[SI+4] 
+		CMP BX, 0x8000
+			JE saltar_ejec_mayor_a_menor
 		SHL BX, CL ; multiplico por 4
 		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
 		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
 		MOV SI,BX
-
+		
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
-
+		
+		saltar_ejec_mayor_a_menor:
+	
 		PUSH AX
 		MOV SI, [BP+2]
 		MOV AX, ES:[SI]
@@ -343,6 +348,8 @@ imprimir_arbol_dinamico PROC
 		POP AX
 
 		MOV BX, ES:[SI+2]
+		CMP BX, 0x8000
+			JE finalizar_recursion_imprimir_dinamico
 		SHL BX, CL ; multiplico por 4
 		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
 		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
@@ -350,7 +357,7 @@ imprimir_arbol_dinamico PROC
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
 
-		JMP finalizar_recursion_imprimir_dinamico
+
 	finalizar_recursion_imprimir_dinamico:
 		POP BP
 		POP SI
@@ -412,7 +419,6 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 		ADD SI,2
 		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
 
-		JMP finalizar_recursion_imprimir
 	finalizar_recursion_imprimir:
 		POP BP
 		POP SI
