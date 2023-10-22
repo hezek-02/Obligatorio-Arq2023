@@ -45,6 +45,10 @@ cambiar_modo:;1
 	MOV word ptr DS:[nodoDinamico],0 ; resetea siempre el último nodo registrado 
 	IN  AX,PUERTO_ENTRADA ; obtiene parametro
 	OUT PUERTO_LOG,AX ; imprime parametro
+	CMP AX,1	
+		JG errorParametroInvalido
+	CMP AX,0
+		JL errorParametroInvalido
 	MOV word ptr DS:[modo],AX ; actualiza modo según parametro
 	JMP inicializar_memoria
 
@@ -148,7 +152,8 @@ imprimir_memoria:;6
 
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (N)
-
+	CMP AX, 0
+		JL errorParametroInvalido
 	CMP word ptr DS:[modo], 0
 		JE imprimir_memoriaEstaticoPrev
 	CMP word ptr DS:[modo], 1
@@ -666,10 +671,15 @@ fin:
 
 
 .ports ; Definición de puertos
-20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+20: 1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
 ;21: 0,0,1,1,5,6
 ;22: 64,1,0,0,64,3,0,64,1,1,0,64,3,0,64,1,0,0,64,2,4,0,64,3,0,64,1,1,0,64,2,5,0,64,3,0,64,1,0,0,64,2,100,0,64,2,128,0,64,2,60,0,64,2,40,0,64,2,20,0,64,2,22,0,64,3,0,64,1,1,0,64,2,50,0,64,2,40,0,64,2,30,0,64,2,45,0,64,2,46,0,64,2,47,0,64,2,48,0,64,3,0,64,255,0
 ;CU: test altura
+
+;20: 1,2,1,-1,5,-1,5,4,6,-1,244,-5,255
+;21: 
+;22: 64,1,2,2,64,1,-1,2,64,5,-1,2,64,5,4,2,64,6,-1,2,64,244,1,64,-5,1,64,255,0
+;CU: test errores
 
 ;20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
 ;21: 530,540
