@@ -184,14 +184,6 @@ void imprimirArbolDinamico(short pos, short orden){ //imprime el ABb, 1 mayor a 
     }
 }
 
-void imprimirMemoriaDinamico(short N){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (5)
-    for (short i = 0; i < 3*N; i+=3){
-        outputPuertoSalida(AREA_DE_MEMORIA[i]);
-        outputPuertoSalida(AREA_DE_MEMORIA[i+1]);
-        outputPuertoSalida(AREA_DE_MEMORIA[i+2]);
-        printf("\n");   
-    }
-}
 //END Modo dinámico
  
 
@@ -295,7 +287,8 @@ int main() {
                     if (N > 2048/3){
                     outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
                     }
-                    imprimirMemoriaDinamico(N);
+                    N=3*N;
+                    imprimirMemoria(N);
                 }
                 outputPuertoLog(CODIGO_EXITO);    
                 break;

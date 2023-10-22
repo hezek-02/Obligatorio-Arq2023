@@ -92,7 +92,36 @@ imprimir_memoria:
 		ADD AX,BX;fin mul 6
 		
 		JMP imprimir_memoria_din_est
-	
+
+imprimir_arbol:
+	XOR SI,SI
+
+	IN AX,PUERTO_ENTRADA
+	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (orden)
+
+	CMP AX, 0
+		JE imprimir_arbol_Prev
+	CMP AX, 1
+		JE imprimir_arbol_Prev
+	JMP errorParametroInvalido
+
+	imprimir_arbol_Prev:
+		CMP word ptr DS:[modo],0
+			JE imprimir_arbol_dinamicoPrev
+		CMP word ptr DS:[modo],1
+			JE imprimir_arbol_estaticoPrev
+	JMP errorParametroInvalido
+	imprimir_arbol_dinamicoPrev:
+		CALL imprimir_arbol_dinamico
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+	imprimir_arbol_estaticoPrev:
+		CALL imprimir_arbol_estatico
+		MOV AX,CODIGO_EXITO 
+		OUT PUERTO_LOG,AX
+		JMP menuSeleccion
+
 ;implementaciones de CU's
 agregarNodoEstatico PROC
 	PUSH AX ;ES:[BP + 4]
@@ -249,7 +278,61 @@ calcular_altura:
 
 calcular_suma:
 
-imprimir_arbol:
+imprimir_arbol_dinamico:
+
+imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
+	PUSH AX ;ES:[BP + 4]
+	PUSH SI ;ES:[BP + 2]
+	PUSH BP
+	MOV BP,SP
+
+	MOV SI,[BP+2] ;desplz 
+	MOV AX,[BP+4] ;orden
+
+	CMP ES:[SI],0x8000	
+		JE	finalizar_recursion_imprimir
+	
+	CMP AX, 1 ; mayor a menor
+		JE imprimir_mayor_a_menor_estatico ;>
+	CMP AX,0 ;menor a mayor
+		JE imprimir_menor_a_mayor_estatico ;<
+
+	imprimir_menor_a_mayor_estatico:
+		SHL SI,1
+		ADD SI,2
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
+		PUSH AX
+		PUSH SI
+		MOV SI, [BP+2]
+		MOV AX, ES:[SI]
+		OUT PUERTO_SALIDA,AX
+		POP SI
+		POP AX
+		SHL SI,1
+		ADD SI,4
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
+		JMP finalizar_recursion_imprimir
+	imprimir_mayor_a_menor_estatico:
+		SHL SI,1
+		ADD SI,4
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
+		PUSH AX
+		PUSH SI
+		MOV SI, [BP+2]
+		MOV AX, ES:[SI]
+		OUT PUERTO_SALIDA,AX
+		POP SI
+		POP AX
+		SHL SI,1
+		ADD SI,2
+		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
+		JMP finalizar_recursion_imprimir
+	finalizar_recursion_imprimir:
+		POP BP
+		POP SI
+		POP AX
+		RET
+imprimir_arbol_estatico ENDP
 
 imprimir_memoria_din_est:
 	CMP SI,AX
@@ -286,8 +369,14 @@ errorParametroInvalido:
 fin:
 	MOV AX,CODIGO_EXITO 
 	OUT PUERTO_LOG,AX
+
+
 .ports ; Definición de puertos
-20: 1,1,2,5,2,-5,2,-4,2,8,6,10,255
+20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
+;21: 4,5,128,100,60,40,22,20,20,22,40,60,100,128,30,40,45,46,47,48,50,50,48,47,46,45,40,30
+;22: 64,1,0,0,64,5,1,0,64,1,1,0,64,5,1,0,64,1,0,0,64,2,4,0,64,5,1,0,64,1,1,0,64,2,5,0,64,5,1,0,64,1,0,0,64,2,100,0,64,2,128,0,64,2,60,0,64,2,40,0,64,2,20,0,64,2,22,0,64,5,1,0,64,5,0,0,64,1,1,0,64,2,50,0,64,2,40,0,64,2,30,0,64,2,45,0,64,2,46,0,64,2,47,0,64,2,48,0,64,5,0,0,64,5,1,0,64,255,0
+;CU: test imprimir
+
 ;20: 1,0,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,1,1,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,255
 ;21: 5,5,-4,60,-10,-32768,-32768,-32768,-80,-32768,-32768,5,1,4,5,1,4,-4,2,-32768,-10,3,-32768,-80,-32768,-32768,60,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768
 ;22: 64,1,0,0,64,2,5,0,64,2,-4,0,64,2,-10,0,64,2,-80,0,64,2,60,0,64,6,0,0,64,6,1,0,64,6,10,0,64,1,1,0,64,2,5,0,64,2,-4,0,64,2,-10,0,64,2,-80,0,64,2,60,0,64,6,0,0,64,6,1,0,64,6,10,0,64,255,0
