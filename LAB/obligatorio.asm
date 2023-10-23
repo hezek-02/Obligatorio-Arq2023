@@ -334,7 +334,7 @@ calcular_altura_dinamico PROC
 	INC BX ;altDerecha
 
 	CMP ES:[SI+4] , 0x8000
-		JE saltar_ejec_altura_izq
+		JE saltar_ejec_altura_der
 	PUSH BX
 	MOV BX, ES:[SI+4] 
 	SHL BX, CL ; multiplico por 4
@@ -385,7 +385,6 @@ calcular_altura_dinamico PROC
 		POP DX
 		POP SI
     	RET
-
 calcular_altura_dinamico ENDP
 
 calcular_altura_estatico PROC
