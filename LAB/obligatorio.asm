@@ -58,6 +58,7 @@ agregar_nodo:;2
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada
 
+	;deriva rutina según modo
 	CMP word ptr DS:[modo],0
 		JE agregarNodoEst
 	CMP word ptr DS:[modo],1
@@ -95,10 +96,11 @@ calcular_altura:;3
 		JMP menuSeleccion
 
 calcular_suma:;4
-	XOR SI,SI
+	XOR SI,SI 
 	XOR AX,AX
-	MOV CX,2
-	CMP word ptr DS:[modo],0
+	MOV CX,2 ;para usar el SHL
+	;según modo deriva rutina
+	CMP word ptr DS:[modo],0 
 		JE calcular_suma_estaticoPrev
 	CMP word ptr DS:[modo],1
 		JE calcular_suma_dinamicoPrev
@@ -122,12 +124,14 @@ imprimir_arbol:;5
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (orden)
 
+	;según parametro imprime arbol de mayor o menor/viceversa
 	CMP AX, 0
 		JE imprimir_arbol_Prev
 	CMP AX, 1
 		JE imprimir_arbol_Prev
 	JMP errorParametroInvalido
-
+	
+	;segun modo llama a la rutina cocrespoondiente
 	imprimir_arbol_Prev:
 		CMP word ptr DS:[modo],0
 			JE imprimir_arbol_estaticoPrev
@@ -315,105 +319,126 @@ agregarNodoDinamico ENDP
 
 calcular_altura_dinamico PROC
 	PUSH SI
+	PUSH DX ;alt izq
+	PUSH BX ;alt der
     PUSH BP
     MOV BP, SP
 
-    MOV SI, [BP + 2]
+    MOV SI, [BP + 6]
 
     CMP ES:[SI], 0x8000
     	JE fin_altura_dinamico
 
     ; Calcular alturas de las subárboles izquierdo y derecho
-   	INC BX ;altDerecha
-	
+   	MOV BX, [BP+2]
+	INC BX ;altDerecha
+
+	CMP ES:[SI+4] , 0x8000
+		JE saltar_ejec_altura_izq
 	PUSH BX
 	MOV BX, ES:[SI+4] 
-	CMP BX, 0x8000
-		JE saltar_ejec_altura_der
 	SHL BX, CL ; multiplico por 4
 	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
 	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
 	MOV SI,BX
+	POP BX
 
     CALL calcular_altura_dinamico
-	
+
 	saltar_ejec_altura_der:
-	MOV SI, [BP+2]
+	MOV SI, [BP+6]
 
-	POP BX
-	PUSH BX
-	MOV BX, ES:[SI+4] 
-	CMP BX, 0x8000
+	CMP ES:[SI+2] , 0x8000
 		JE saltar_ejec_altura_izq
+	PUSH BX
+	MOV BX, ES:[SI+2] 
 	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
+	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
 	MOV SI,BX
-	MOV SI,[BP+2]
+	POP BX
 
+	MOV DX, [BP+4]
   	INC DX ;altIzq
 
     CALL calcular_altura_dinamico
 
 	saltar_ejec_altura_izq:
-	POP BX
+
     ; Comparar alturas y retornar la mayor
-    CMP BX, DX
+	
+    CMP BX, DX ; si bx es mayor
     	JG mayor_es_derecho
+	CMP AX, DX ; si ax es mayor
+		JG fin_altura_dinamico
     MOV AX, DX ; Retornar altIzquierda
     JMP fin_altura_dinamico
 
-	mayor_es_derecho:
+	mayor_es_derecho:	
+	CMP AX,BX ; si ax es mayor
+		JG fin_altura_estatico
     MOV AX, BX ; Retornar altDerecha
 
 	fin_altura_dinamico:
     	POP BP
+		POP BX
+		POP DX
 		POP SI
     	RET
+
 calcular_altura_dinamico ENDP
 
 calcular_altura_estatico PROC
 	PUSH SI
+	PUSH DX ;alt izq
+	PUSH BX ;alt der
     PUSH BP
     MOV BP, SP
-
-    MOV SI, [BP + 2]
+    MOV SI, [BP + 6]
 
     CMP ES:[SI], 0x8000
     	JE fin_altura_estatico
 
     ; Calcular alturas de las subárboles izquierdo y derecho
-   	INC BX ;altDerecha
-	
 	SHL SI,1
 	ADD SI,4
-    CALL calcular_altura_estatico
-	
-	MOV SI,[BP+2]
 
-  	INC DX ;altIzq
-	
+	MOV BX, [BP+2]
+	INC BX
+    CALL calcular_altura_estatico
+
+	MOV SI,[BP+6]
+
 	SHL SI,1
 	ADD SI,2
+
+	MOV DX, [BP+4]
+  	INC DX ;altIzq
     CALL calcular_altura_estatico
 
     ; Comparar alturas y retornar la mayor
-    CMP BX, DX
+	
+    CMP BX, DX ; si bx es mayor
     	JG mayor_es_derecho_estatico
+	CMP AX, DX ; si ax es mayor
+		JG fin_altura_estatico
     MOV AX, DX ; Retornar altIzquierda
     JMP fin_altura_estatico
 
-	mayor_es_derecho_estatico:
+	mayor_es_derecho_estatico:	
+	CMP AX,BX ; si ax es mayor
+		JG fin_altura_estatico
     MOV AX, BX ; Retornar altDerecha
 
 	fin_altura_estatico:
-    	POP BP
-		POP SI
-    	RET	
+		POP BP
+		POP BX ;alt izq
+		POP DX ;alt der
+    	POP SI
+		RET
 calcular_altura_estatico ENDP
 		
 calcular_suma_dinamico PROC
-
 	PUSH SI ;ES:[BP + 2]
 	PUSH BP
 	MOV BP,SP
@@ -449,8 +474,10 @@ calcular_suma_dinamico PROC
 	CALL calcular_suma_dinamico
 
 	fin_suma_dinamica:
-		POP BP
-		POP SI
+		PUSH BP
+		PUSH BX ;alt izq
+		PUSH DX ;alt der
+    	PUSH SI
 		RET
 calcular_suma_dinamico ENDP
 
@@ -515,7 +542,7 @@ imprimir_arbol_dinamico PROC
 		saltar_ejec_menor_a_mayor:
 		
 		PUSH AX
-		MOV SI, [BP+2]
+		MOV SI, [BP+2];sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
@@ -546,7 +573,7 @@ imprimir_arbol_dinamico PROC
 		saltar_ejec_mayor_a_menor:
 	
 		PUSH AX
-		MOV SI, [BP+2]
+		MOV SI, [BP+2] ;sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
@@ -592,7 +619,7 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1)-1,orden);
 
 		PUSH AX
-		MOV SI, [BP+2]
+		MOV SI, [BP+2];sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
@@ -608,7 +635,7 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 		CALL imprimir_arbol_estatico;imprimirArbol(2*(nodo+1),orden);
 		
 		PUSH AX
-		MOV SI, [BP+2]
+		MOV SI, [BP+2] ;sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
 		OUT PUERTO_SALIDA,AX
 		POP AX
@@ -624,7 +651,7 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 		RET
 imprimir_arbol_estatico ENDP
 
-imprimir_memoria_din_est:
+imprimir_memoria_din_est:  ;iterativo (sirve dinámico y estático), se inicializa AX, con el valor N, según corresponda
 	CMP SI,AX
 		JNL fin_imprimir_memoria
 	PUSH AX
@@ -644,9 +671,6 @@ inicializar_memoria: ;iterativo (sirve dinámico y estático)
 	ADD SI,2;pasos de offset 2 bytes
 	CMP SI,4096;compara si ha llenado toda el area de memoria
 		JLE inicializar_memoria 
-	;debug
-	;MOV AX,SI
-	;OUT PUERTO_LOG,AX
 	MOV AX,CODIGO_EXITO 
 	OUT PUERTO_LOG,AX
 	JMP	menuSeleccion
