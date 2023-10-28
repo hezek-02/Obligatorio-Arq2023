@@ -6,7 +6,7 @@ const short VACIO = 0x8000;
 short nodoDinamico = 0; //para parte dinámica
 short modo; //indica modo estático o dinámico
 const short AREA_MEMORIA_BYTES = 2048;
-const short CANT_NODOS_DINAMICOS = 681 ;
+const short CANT_NODOS_DINAMICOS = 682 ;
 //puertos
 const short PUERTO_ENTRADA = 20;
 const short PUERTO_SALIDA = 21;
