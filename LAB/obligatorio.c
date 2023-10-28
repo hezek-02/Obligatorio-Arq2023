@@ -1,16 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//parametros globales
 short AREA_DE_MEMORIA[2048];
 const short VACIO = 0x8000;
 short nodoDinamico = 0; //para parte dinámica
 short modo; //indica modo estático o dinámico
-
-//variables de menú
-unsigned char eleccion ;
-char continuarPrograma = 1;
-
+const short AREA_MEMORIA_BYTES = 2048;
+const short CANT_NODOS_DINAMICOS = 681 ;
 //puertos
 const short PUERTO_ENTRADA = 20;
 const short PUERTO_SALIDA = 21;
@@ -24,14 +20,14 @@ const short CODIGO_ESCRITURA_INVALIDA = 4;
 const short CODIGO_NODO_EXISTENTE = 8;
 
 void inicializar_memoria(){
-    for (short i = 0; i < 2048; i++){
+    for (short i = 0; i < AREA_MEMORIA_BYTES; i++){
         AREA_DE_MEMORIA[i] = VACIO;
     }
 }
 
 //Modo estatico
 void agregarNodo(short num, short nodo){ //insertarEnABB (2)
-    if (nodo>=2048){
+    if (nodo>=AREA_MEMORIA_BYTES){
         outputPuertoLog(CODIGO_ESCRITURA_INVALIDA);
         return;
     }
@@ -49,7 +45,7 @@ void agregarNodo(short num, short nodo){ //insertarEnABB (2)
 }
 
 short calcularAltura(short nodo){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (3)
-    if (nodo <= 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+    if (nodo <= AREA_MEMORIA_BYTES && AREA_DE_MEMORIA[nodo] != VACIO){
         short altIzquierda = calcularAltura(2*(nodo+1)-1) + 1;
         short altDerecha = calcularAltura(2*(nodo+1)) + 1;
         if (altDerecha > altIzquierda)
@@ -62,14 +58,14 @@ short calcularAltura(short nodo){ //imprime el ABb, 1 mayor a menor, 0 menor a m
 
 short calcularSuma(short nodo){ //Calcular suma (4)
     short suma = 0;
-    if (nodo <= 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+    if (nodo <= AREA_MEMORIA_BYTES && AREA_DE_MEMORIA[nodo] != VACIO){
         suma = AREA_DE_MEMORIA[nodo] + calcularSuma(2*(nodo+1)) + calcularSuma(2*(nodo+1)-1);
     }
     return suma;
 }
 
 void imprimirArbol(short nodo, short orden){ //imprime el ABb, 1 mayor a menor, 0 menor a mayor (5)
-    if (nodo <= 2048 && AREA_DE_MEMORIA[nodo] != VACIO){
+    if (nodo <= AREA_MEMORIA_BYTES && AREA_DE_MEMORIA[nodo] != VACIO){
         if (orden == 1 ){
             imprimirArbol(2*(nodo+1),orden);
             outputPuertoSalida(AREA_DE_MEMORIA[nodo]);      
@@ -92,7 +88,7 @@ void imprimirMemoria(short N){ //imprime el ABb, 1 mayor a menor, 0 menor a mayo
 
 //Modo dinámico
 void agregarNodoDinamico(short num, short pos){
-    if (pos > 2048/3){
+    if (pos > CANT_NODOS_DINAMICOS && nodoDinamico>CANT_NODOS_DINAMICOS-1){
         outputPuertoLog(CODIGO_ESCRITURA_INVALIDA);
         return;
     }
@@ -169,10 +165,11 @@ void outputPuertoSalida(const short codigo ){//Simula la salida puertoSalida
 int main() {
     system("clear");
     inicializar_memoria();
-
+    char continuarPrograma = 1;
     while (continuarPrograma) {
         outputPuertoLog(64);
         printf("Puerto: %hd:", PUERTO_ENTRADA);
+        short eleccion;
         scanf("%hhu", &eleccion);
 
         switch (eleccion) {
@@ -255,7 +252,7 @@ int main() {
                     }
                     imprimirMemoria(N);
                 }else{
-                    if (N > 2048/3){
+                    if (N > CANT_NODOS_DINAMICOS){
                     outputPuertoLog(CODIGO_PARAMETRO_INVALIDO);
                     }
                     N=3*N;
