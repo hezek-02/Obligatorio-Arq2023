@@ -1,35 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/**
- *
- * El programa permite interactuar con un árbol mediante comandos de la siguiente forma:
- *
- * - Cambiar Modo (Comando: 1, Parámetro: Modo)
- *   Cambia el modo de almacenamiento del árbol e inicializa el área de memoria.
- *
- * - Agregar Nodo (Comando: 2, Parámetro: Número)
- *   Agrega el número al árbol.
- *
- * - Calcular Altura (Comando: 3)
- *   Imprime la altura del árbol.
- *
- * - Calcular Suma (Comando: 4)
- *   Imprime la suma de todos los números del árbol.
- *
- * - Imprimir Árbol Orden (Comando: 5, Parámetro: 0-1)
- *   Imprime todos los números del árbol. El parámetro orden indica si se imprimen
- *   de menor a mayor (0) o de mayor a menor (1).
- *
- * - Imprimir Memoria N (Comando: 6, Parámetro: N)
- *   Imprime los primeros N nodos del área de memoria del árbol.
- *
- * - Detener programa (Comando: 255)
- *   Detiene la ejecución del programa.
- *
- */
-
-
 //parametros globales
 short AREA_DE_MEMORIA[2048];
 const short VACIO = 0x8000;

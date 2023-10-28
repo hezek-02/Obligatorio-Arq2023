@@ -213,12 +213,12 @@ agregarNodoEstatico PROC
 		OUT PUERTO_LOG,AX
 		JMP finalizarRecursion
 	insercion_der:;paso recursivo
-		SHL SI,1
+		SHL SI,1 ;pos=2pos+2
 		ADD SI,4
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
 	insercion_izq:;paso recursivo
-		SHL SI,1
+		SHL SI,1 ;pos=2pos+1
 		ADD SI,2
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
@@ -351,7 +351,6 @@ calcular_altura_dinamico PROC
 
 	CMP SI,VACIO;pos != VACIO
 		JE salto_ejec_der_altura
-
 	
 	PUSH AX
 	MOV AX,6
@@ -405,26 +404,26 @@ calcular_altura_dinamico PROC
 calcular_altura_dinamico ENDP
 
 calcular_altura_estatico PROC
-	PUSH SI
+	PUSH SI ;pos
 	PUSH DX ;alt izq
 	PUSH BX ;alt der
     PUSH BP
     MOV BP, SP
     MOV SI, [BP + 6]
 
-	CMP SI,AREA_MEMORIA_BYTES	
+	CMP SI,AREA_MEMORIA_BYTES ;pos > 2048	
 		JG	fin_altura_estatico
-    CMP ES:[SI], VACIO
+    CMP ES:[SI], VACIO ;AREA_DE_MEMORIA[pos] != VACIO
     	JE fin_altura_estatico
     ; Calcular alturas de las subárboles izquierdo y derecho
 	SHL SI,1
 	ADD SI,4
 
-	MOV BX, [BP+2]
-	INC BX
+	MOV BX, [BP+2];retorna contexto
+	INC BX; incrementa altura der
     CALL calcular_altura_estatico
 
-	MOV SI,[BP+6]
+	MOV SI,[BP+6];retorna contexto
 
 	SHL SI,1
 	ADD SI,2
@@ -462,16 +461,16 @@ calcular_suma_dinamico PROC
 
 	MOV SI,[BP+2] ;desplz 
 
-	CMP SI,AREA_MEMORIA_BYTES	
+	CMP SI,AREA_MEMORIA_BYTES;pos>2048/3		
 		JG	fin_suma_dinamica
 
-	CMP ES:[SI], VACIO
+	CMP ES:[SI], VACIO;AREA_DE_MEMORIA[pos] != VACIO
 		JE fin_suma_dinamica
 
-	ADD AX,ES:[SI]
+	ADD AX,ES:[SI];suma += AREA_DE_MEMORIA[pos]
 
-	MOV SI, ES:[SI+4] 
-	CMP SI,VACIO;AREA_DE_MEMORIA[pos] != VACIO
+	MOV SI, ES:[SI+4] ;pos = AREA_DE_MEMORIA[pos+2]
+	CMP SI,VACIO ;AREA_DE_MEMORIA[pos] != VACIO
 		JE salto_ejec_der_suma
 	PUSH AX
 	MOV AX,6
@@ -485,7 +484,7 @@ calcular_suma_dinamico PROC
 
 	MOV SI, [BP+2] ;retoma contexto
 	
-	MOV SI, ES:[SI+2] 
+	MOV SI, ES:[SI+2] ;pos = AREA_DE_MEMORIA[pos+1]
 
 	CMP SI,VACIO;AREA_DE_MEMORIA[pos] != VACIO
 		JE salto_ejec_izq_suma
@@ -513,9 +512,9 @@ calcular_suma_estatico PROC
 
 	MOV SI,[BP+2] ;desplz 
 
-	CMP SI,AREA_MEMORIA_BYTES	
+	CMP SI,AREA_MEMORIA_BYTES ;pos>2048	
 		JG	fin_suma_estatica
-	CMP ES:[SI], VACIO
+	CMP ES:[SI], VACIO ;AREA_DE_MEMORIA[nodo] == VACIO
 		JE fin_suma_estatica
 	
 	ADD AX,ES:[SI]
@@ -688,7 +687,7 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 imprimir_arbol_estatico ENDP
 
 imprimir_memoria_din_est:  ;iterativo (sirve dinámico y estático), se inicializa AX, con el valor N, según corresponda
-	CMP SI,AX
+	CMP SI,AX; pos<=N o pos<=3*N, se controla antes q N<=2048 o N<=682 segun modo
 		JNL fin_imprimir_memoria
 	PUSH AX
 	MOV AX, ES:[SI]
@@ -720,6 +719,7 @@ fin:
 	OUT PUERTO_LOG,AX
 
 .ports ; Definición de puertos
+20:1,0,6,2049,255
 ;20:1,0,2,1024,2,512,2,256,2,128,2,64,2,32,2,16,2,8,2,4,2,2,2,1,2,3,2,5,2,6,2,7,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,17,2,18,2,19,2,20,2,21,2,22,2,23,2,24,2,25,2,26,2,27,2,28,2,29,2,30,2,31,2,33,2,34,2,35,2,36,2,37,2,38,2,39,2,40,2,41,2,42,2,43,2,44,2,45,2,46,2,47,2,48,2,49,2,50,2,51,2,52,2,53,2,54,2,55,2,56,2,57,2,58,2,59,2,60,2,61,2,62,2,63,2,65,2,66,2,67,2,68,2,69,2,70,2,71,2,72,2,73,2,74,2,75,2,76,2,77,2,78,2,79,2,80,2,81,2,82,2,83,2,84,2,85,2,86,2,87,2,88,2,89,2,90,2,91,2,92,2,93,2,94,2,95,2,96,2,97,2,98,2,99,2,100,2,101,2,102,2,103,2,104,2,105,2,106,2,107,2,108,2,109,2,110,2,111,2,112,2,113,2,114,2,115,2,116,2,117,2,118,2,119,2,120,2,121,2,122,2,123,2,124,2,125,2,126,2,127,2,2048,2,1025,2,1026,2,1027,2,1028,2,1029,2,1030,2,1031,2,1032,2,1033,2,1034,2,1035,2,1036,2,1037,2,1038,2,1039,2,1040,2,1041,2,1042,2,1043,2,1044,2,1045,2,1046,2,1047,2,1048,2,1049,2,1050,2,1051,2,1052,2,1053,2,1054,2,1055,2,1056,2,1057,2,1058,2,1059,2,1060,2,1061,2,1062,2,1063,2,1064,2,1065,2,1066,2,1067,2,1068,2,1069,2,1070,2,1071,2,1072,2,1073,2,1074,2,1075,2,1076,2,1077,2,1078,2,1079,2,1080,2,1081,2,1082,2,1083,2,1084,2,1085,2,1086,2,1087,2,1088,2,1089,2,1090,2,1091,2,1092,2,1093,2,1094,2,1095,2,1096,2,1097,2,1098,2,1099,2,1100,2,1101,2,1102,2,1103,2,1104,2,1105,2,1106,2,1107,2,1108,2,1109,2,1110,2,1111,2,1112,2,1113,2,1114,2,1115,2,1116,2,1117,2,1118,2,1119,2,1120,2,1121,2,1122,2,1123,2,1124,2,1125,2,1126,2,1127,2,1128,2,1129,2,1130,2,1131,2,1132,2,1133,2,1134,2,1135,2,1136,2,1137,2,1138,2,1139,2,1140,2,1141,2,1142,5,0,255
 ;20:1,1,2,1,2,2,2,3,2,4,2,5,2,6,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,255
 ;20:1,0,2,1,2,2,2,3,2,4,2,5,2,6,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,255
