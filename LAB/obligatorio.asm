@@ -80,7 +80,7 @@ calcular_altura:;3
 	XOR AX,AX
 	XOR BX,BX
 	XOR DX,DX
-	MOV CX,2
+
 	CMP word ptr DS:[modo],0
 		JE calcular_altura_estaticoPrev
 	CMP word ptr DS:[modo],1
@@ -102,7 +102,7 @@ calcular_altura:;3
 calcular_suma:;4
 	XOR SI,SI 
 	XOR AX,AX
-	MOV CX,2 ;para usar el SHL
+
 	;según modo deriva rutina
 	CMP word ptr DS:[modo],0 
 		JE calcular_suma_estaticoPrev
@@ -124,7 +124,7 @@ calcular_suma:;4
 
 imprimir_arbol:;5
 	XOR SI,SI
-	MOV CX, 2
+
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada (orden)
 
@@ -175,11 +175,11 @@ imprimir_memoria:;6
 	imprimir_memoriaDinamicoPrev:
 		CMP AX,CANT_NODOS_DINAMICOS
 			JNLE errorParametroInvalido
-		MOV CX, 2 ; mul 6
+		
 		MOV BX, AX
-		SHL AX, CL; mul 4
-		ADD AX,BX
-		ADD AX,BX;fin mul 6
+		MOV AX,6
+		MUL BX ; mul 6
+		MOV AX,BX
 		
 		JMP imprimir_memoria_din_est
 
@@ -211,12 +211,12 @@ agregarNodoEstatico PROC
 		OUT PUERTO_LOG,AX
 		JMP finalizarRecursion
 	insercion_der:
-		ADD SI,SI
+		SHL SI,1
 		ADD SI,4
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
 	insercion_izq:
-		ADD SI,SI
+		SHL SI,1
 		ADD SI,2
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
@@ -242,15 +242,13 @@ agregarNodoDinamico PROC
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
-	MOV CX, 2; para multiplicar por 4, SHL
-
 	CMP ES:[SI],0x8000	
 		JE	insertarDinamico
 	CMP SI, AREA_MEMORIA_BYTES; 
 		JG error_excede_din
-	CMP AX, ES:[SI]; se considera signo
-		JNLE insercion_der_din ;>
-	;CMP AX,ES:[SI]
+	CMP AX, ES:[SI]; comentar aca
+		JG insercion_der_din ;>
+	CMP AX,ES:[SI]
 		JL 	insercion_izq_din ;<
 	JMP error_ya_existe_din;==
 	error_excede_din:
@@ -264,12 +262,15 @@ agregarNodoDinamico PROC
 	insercion_der_din:
 		CMP ES:[SI+4], 0x8000
 			JE elseDer
-		MOV BX, ES:[SI+4] ; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+2]);
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
 
-		MOV SI, BX
+		; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+2]);
+		PUSH AX
+		MOV AX,6
+		MOV SI, ES:[SI+4];indice del nodo 
+		MUL SI
+		MOV SI, AX
+		POP AX
+
 		CALL agregarNodoDinamico
 		JMP finalizarRecursionDinamico
 		elseDer: 
@@ -279,11 +280,14 @@ agregarNodoDinamico PROC
 	insercion_izq_din:
 		CMP ES:[SI+2], 0x8000
 			JE elseIzq
-		MOV BX, ES:[SI+2] ; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+1]);
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
-		MOV SI, BX
+		; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+1]);
+		PUSH AX
+		MOV AX,6
+		MOV SI, ES:[SI+2] ;indice del nodo
+		MUL SI
+		MOV SI, AX
+		POP AX
+
 		CALL agregarNodoDinamico
 		JMP finalizarRecursionDinamico
 		elseIzq:
@@ -294,16 +298,16 @@ agregarNodoDinamico PROC
 		CMP SI,0 ; inserta el primer nodo
 			JE insertarPrimero
 		INC word ptr DS:[nodoDinamico] ; nodoDinamico++; 
-		MOV BX, DS:[nodoDinamico]
+		MOV BX,DS:[nodoDinamico]
 		MOV word ptr ES:[SI],BX ; AREA_DE_MEMORIA[pos] = nodoDinamico;
 		 
-		; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+1]);
-		SHL BX, CL ; multiplico por 4
-		ADD BX, DS:[nodoDinamico]; sumo nodoDinamico
-		ADD BX, DS:[nodoDinamico]; sumo nodoDinamico
-		MOV SI, BX ;SI = [6*nodoDinamico];
+		; prepara SI, en posicion
+		PUSH AX
+		MOV AX,6
+		MUL BX
+		MOV SI, AX ;SI = [6*nodoDinamico];
+		POP AX
 
-		
 		MOV	ES:[SI],AX ; agrega el nodo
 		MOV AX,CODIGO_EXITO  
 		OUT PUERTO_LOG,AX
@@ -328,7 +332,8 @@ calcular_altura_dinamico PROC
     PUSH BP
     MOV BP, SP
 
-    MOV SI, [BP + 6]
+    MOV SI, [BP + 6]; para contexto
+
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	fin_altura_dinamico
     CMP ES:[SI], 0x8000
@@ -337,39 +342,31 @@ calcular_altura_dinamico PROC
     ; Calcular alturas de las subárboles izquierdo y derecho
    	MOV BX, [BP+2]
 	INC BX ;altDerecha
-
-	CMP ES:[SI+4] , 0x8000
-		JE saltar_ejec_altura_der
-	PUSH BX
-	MOV BX, ES:[SI+4] 
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	MOV SI,BX
-	POP BX
+	
+	;comentar aca
+	PUSH AX
+	MOV SI,ES:[SI+4] 
+	MOV AX,6
+	MUL SI
+	POP AX
 
     CALL calcular_altura_dinamico
 
-	saltar_ejec_altura_der:
 	MOV SI, [BP+6]
 
-	CMP ES:[SI+2] , 0x8000
-		JE saltar_ejec_altura_izq
 
-	PUSH BX
-	MOV BX, ES:[SI+2] 
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-	MOV SI,BX
-	POP BX
+	;comentar aca
+	PUSH AX
+	MOV SI,ES:[SI+2] 
+	MOV AX,6
+	MUL SI
+	POP AX
 
 	MOV DX, [BP+4]
   	INC DX ;altIzq
 
     CALL calcular_altura_dinamico
 
-	saltar_ejec_altura_izq:
 
     ; Comparar alturas y retornar la mayor
 	
@@ -459,26 +456,21 @@ calcular_suma_dinamico PROC
 
 	ADD AX,ES:[SI]
 
-	MOV BX, ES:[SI+4] 
-	CMP BX, 0x8000
-		JE saltar_ejec_suma
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-	MOV SI,BX
+	MOV SI, ES:[SI+4] 
+	PUSH AX
+	MOV AX,6
+	MUL SI
+	POP AX
 
 	CALL calcular_suma_dinamico
-	
-	saltar_ejec_suma:
 
-	MOV SI, [BP+2]
-	MOV BX, ES:[SI+2] 
-	CMP BX, 0x8000
-		JE fin_suma_dinamica
-	SHL BX, CL ; multiplico por 4
-	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-	ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-	MOV SI,BX
+	MOV SI, [BP+2] ;retoma contexto
+	
+	MOV SI, ES:[SI+2] 
+	PUSH AX
+	MOV AX,6
+	MUL SI
+	POP AX
 
 	CALL calcular_suma_dinamico
 
@@ -541,17 +533,13 @@ imprimir_arbol_dinamico PROC
 
 	imprimir_menor_a_mayor_dinamico:
 
-		MOV BX, ES:[SI+2] 
-		CMP BX, 0x8000
-			JE saltar_ejec_menor_a_mayor
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+4]
-		MOV SI,BX
+		MOV SI, ES:[SI+2] 
+		PUSH AX
+		MOV AX,6
+		MUL SI
+		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
-		
-		saltar_ejec_menor_a_mayor:
 		
 		PUSH AX
 		MOV SI, [BP+2];sigue del índice con la ejecución del stack correspondiente
@@ -559,31 +547,24 @@ imprimir_arbol_dinamico PROC
 		OUT PUERTO_SALIDA,AX
 		POP AX
 		
-		MOV BX, ES:[SI+4]
-		CMP BX, 0x8000
-			JE finalizar_recursion_imprimir_dinamico
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+2]
-		MOV SI,BX
+		MOV SI, ES:[SI+4] 
+		PUSH AX
+		MOV AX,6
+		MUL SI
+		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
 
 		JMP finalizar_recursion_imprimir_dinamico
 	imprimir_mayor_a_menor_dinamico:
 		
-		MOV BX, ES:[SI+4] 
-
-		CMP BX, 0x8000
-			JE saltar_ejec_mayor_a_menor
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-		ADD BX, ES:[SI+4] ; sumo ES:[SI+4]
-		MOV SI,BX
+		MOV SI, ES:[SI+4] 
+		PUSH AX
+		MOV AX,6
+		MUL SI
+		POP AX
 		
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
-		
-		saltar_ejec_mayor_a_menor:
 	
 		PUSH AX
 		MOV SI, [BP+2] ;sigue del índice con la ejecución del stack correspondiente
@@ -591,13 +572,11 @@ imprimir_arbol_dinamico PROC
 		OUT PUERTO_SALIDA,AX
 		POP AX
 
-		MOV BX, ES:[SI+2]
-		CMP BX, 0x8000
-			JE finalizar_recursion_imprimir_dinamico
-		SHL BX, CL ; multiplico por 4
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
-		ADD BX, ES:[SI+2] ; sumo ES:[SI+2]
-		MOV SI,BX
+		MOV SI, ES:[SI+2] 
+		PUSH AX
+		MOV AX,6
+		MUL SI
+		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
 
