@@ -4,13 +4,16 @@ CODIGO_COMANDO_INVALIDO EQU 1
 CODIGO_PARAMETRO_INVALIDO EQU 2
 CODIGO_ESCRITURA_INVALIDA EQU 4
 CODIGO_NODO_EXISTENTE EQU 8
-
+;cte obligatoria
+AREA_MEMORIA EQU 2048
+;cts propias
+VACIO EQU 0x8000
+AREA_MEMORIA_BYTES EQU 2048 * 2
+CANT_NODOS_DINAMICOS EQU 682
+;puertos
 PUERTO_ENTRADA EQU 20;
 PUERTO_SALIDA EQU 21;
 PUERTO_LOG EQU 22;
-AREA_MEMORIA EQU 2048
-AREA_MEMORIA_BYTES EQU 2048 * 2
-CANT_NODOS_DINAMICOS EQU 682
 .data  ; Segmento de datos
 	#define ES 0x0500
 	nodoDinamico dw 0 ;indica el nodoActual (el último) en el modo dinámico
@@ -60,7 +63,7 @@ agregar_nodo:;2
 
 	IN AX,PUERTO_ENTRADA
 	OUT PUERTO_LOG,AX ; imprime parámetro de entrada
-	CMP AX,0x8000
+	CMP AX,VACIO
 		JE errorParametroInvalido
 	;deriva rutina según modo
 	CMP word ptr DS:[modo],0
@@ -178,28 +181,27 @@ imprimir_memoria:;6
 		
 		MOV BX, AX
 		MOV AX,6
-		MUL BX ; mul 6
-		MOV AX,BX
+		MUL BX ; mul ax=6*ax
 		
 		JMP imprimir_memoria_din_est
 
 ;implementaciones de CU's
 agregarNodoEstatico PROC
-	PUSH AX ;ES:[BP + 4]
-	PUSH SI ;ES:[BP + 2]
+	PUSH AX ;ES:[BP + 4],num
+	PUSH SI ;ES:[BP + 2],pos
 	PUSH BP
 	MOV BP,SP
 
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
-	CMP ES:[SI],0x8000	
+	CMP ES:[SI],VACIO ;AREA_DE_MEMORIA[pos] == VACIO	
 		JE	insertar
-	CMP SI, AREA_MEMORIA_BYTES; no se considera signo
+	CMP SI, AREA_MEMORIA_BYTES; pos >2048
 		JG error_excede
-	CMP AX, ES:[SI]; se considera signo
-		JNLE insercion_der ;>
-	;CMP AX,ES:[SI]
+	CMP AX, ES:[SI]; AREA_DE_MEMORIA[nodo]>num
+		JG insercion_der ;>
+	CMP AX,ES:[SI] ;AREA_DE_MEMORIA[nodo]<num
 		JL 	insercion_izq ;<
 	JMP error_ya_existe;==
 	error_excede:
@@ -210,17 +212,17 @@ agregarNodoEstatico PROC
 		MOV AX,CODIGO_NODO_EXISTENTE
 		OUT PUERTO_LOG,AX
 		JMP finalizarRecursion
-	insercion_der:
+	insercion_der:;paso recursivo
 		SHL SI,1
 		ADD SI,4
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
-	insercion_izq:
+	insercion_izq:;paso recursivo
 		SHL SI,1
 		ADD SI,2
 		CALL agregarNodoEstatico
 		JMP finalizarRecursion
-	insertar:
+	insertar:;PB
 		MOV	ES:[SI],AX ;agrega el nodo
 		MOV AX,CODIGO_EXITO  
 		OUT PUERTO_LOG,AX
@@ -234,21 +236,21 @@ agregarNodoEstatico PROC
 agregarNodoEstatico ENDP
 
 agregarNodoDinamico PROC
-	PUSH AX ;ES:[BP + 4]
-	PUSH SI ;ES:[BP + 2]
+	PUSH AX ;ES:[BP + 4],num
+	PUSH SI ;ES:[BP + 2],pos
 	PUSH BP
 	MOV BP,SP
 
 	MOV SI,[BP+2] ;desplz 
 	MOV AX,[BP+4] ;nro a insertar
 
-	CMP ES:[SI],0x8000	
+	CMP ES:[SI],VACIO ;AREA_DE_MEMORIA[pos] == VACIO	
 		JE	insertarDinamico
-	CMP SI, AREA_MEMORIA_BYTES; 
+	CMP SI, AREA_MEMORIA_BYTES ;pos > 2048/3 
 		JG error_excede_din
-	CMP AX, ES:[SI]; comentar aca
+	CMP AX, ES:[SI]; AREA_DE_MEMORIA[nodo]<num
 		JG insercion_der_din ;>
-	CMP AX,ES:[SI]
+	CMP AX,ES:[SI] ;AREA_DE_MEMORIA[nodo]<num
 		JL 	insercion_izq_din ;<
 	JMP error_ya_existe_din;==
 	error_excede_din:
@@ -259,8 +261,8 @@ agregarNodoDinamico PROC
 		MOV AX,CODIGO_NODO_EXISTENTE
 		OUT PUERTO_LOG,AX
 		JMP finalizarRecursionDinamico
-	insercion_der_din:
-		CMP ES:[SI+4], 0x8000
+	insercion_der_din:;(num > AREA_DE_MEMORIA[pos])
+		CMP ES:[SI+4], VACIO ;AREA_DE_MEMORIA[pos+2] != VACIO
 			JE elseDer
 
 		; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+2]);
@@ -277,9 +279,11 @@ agregarNodoDinamico PROC
 			ADD SI,4
 			CALL agregarNodoDinamico
 			JMP finalizarRecursionDinamico
-	insercion_izq_din:
-		CMP ES:[SI+2], 0x8000
+
+	insercion_izq_din:;(num > AREA_DE_MEMORIA[pos])
+		CMP ES:[SI+2], VACIO;AREA_DE_MEMORIA[pos+2] != VACIO
 			JE elseIzq
+
 		; agregarNodoDinamico(num, 3*AREA_DE_MEMORIA[pos+1]);
 		PUSH AX
 		MOV AX,6
@@ -294,7 +298,7 @@ agregarNodoDinamico PROC
 			ADD SI,2
 			CALL agregarNodoDinamico
 			JMP finalizarRecursionDinamico
-	insertarDinamico:
+	insertarDinamico:;PB pos!=0
 		CMP SI,0 ; inserta el primer nodo
 			JE insertarPrimero
 		INC word ptr DS:[nodoDinamico] ; nodoDinamico++; 
@@ -305,15 +309,15 @@ agregarNodoDinamico PROC
 		PUSH AX
 		MOV AX,6
 		MUL BX
-		MOV SI, AX ;SI = [6*nodoDinamico];
+		MOV SI, AX  ;3*pos = nodoDinamico
 		POP AX
 
-		MOV	ES:[SI],AX ; agrega el nodo
+		MOV	ES:[SI],AX ;; AREA_DE_MEMORIA[3*nodoDinamico] = num;
 		MOV AX,CODIGO_EXITO  
 		OUT PUERTO_LOG,AX
 		JMP finalizarRecursionDinamico
 
-	insertarPrimero:
+	insertarPrimero:;PB pos=0
 		MOV	ES:[SI],AX
 		MOV AX,CODIGO_EXITO  
 		OUT PUERTO_LOG,AX
@@ -326,7 +330,7 @@ agregarNodoDinamico PROC
 agregarNodoDinamico ENDP
 
 calcular_altura_dinamico PROC
-	PUSH SI
+	PUSH SI ;pos
 	PUSH DX ;alt izq
 	PUSH BX ;alt der
     PUSH BP
@@ -334,32 +338,42 @@ calcular_altura_dinamico PROC
 
     MOV SI, [BP + 6]; para contexto
 
-	CMP SI,AREA_MEMORIA_BYTES	
+	CMP SI,AREA_MEMORIA_BYTES ;pos<2048/3	
 		JG	fin_altura_dinamico
-    CMP ES:[SI], 0x8000
+    CMP ES:[SI], VACIO ; AREA_DE_MEMORIA[pos] = VACIO
     	JE fin_altura_dinamico
 
     ; Calcular alturas de las subárboles izquierdo y derecho
    	MOV BX, [BP+2]
 	INC BX ;altDerecha
 	
-	;comentar aca
-	PUSH AX
 	MOV SI,ES:[SI+4] 
+
+	CMP SI,VACIO;pos != VACIO
+		JE salto_ejec_der_altura
+
+	
+	PUSH AX
 	MOV AX,6
 	MUL SI
+	MOV SI,AX;3*pos
 	POP AX
 
     CALL calcular_altura_dinamico
 
-	MOV SI, [BP+6]
+	salto_ejec_der_altura:
 
+	MOV SI, [BP+6] ;conservar contexto
 
+	MOV SI,ES:[SI+2] 
+
+	CMP SI,VACIO;pos != VACIO
+		JE salto_ejec_izq_altura
 	;comentar aca
 	PUSH AX
-	MOV SI,ES:[SI+2] 
 	MOV AX,6
 	MUL SI
+	MOV SI,AX
 	POP AX
 
 	MOV DX, [BP+4]
@@ -367,7 +381,7 @@ calcular_altura_dinamico PROC
 
     CALL calcular_altura_dinamico
 
-
+	salto_ejec_izq_altura:
     ; Comparar alturas y retornar la mayor
 	
     CMP BX, DX ; si bx es mayor
@@ -400,7 +414,7 @@ calcular_altura_estatico PROC
 
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	fin_altura_estatico
-    CMP ES:[SI], 0x8000
+    CMP ES:[SI], VACIO
     	JE fin_altura_estatico
     ; Calcular alturas de las subárboles izquierdo y derecho
 	SHL SI,1
@@ -451,28 +465,40 @@ calcular_suma_dinamico PROC
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	fin_suma_dinamica
 
-	CMP ES:[SI], 0x8000
+	CMP ES:[SI], VACIO
 		JE fin_suma_dinamica
 
 	ADD AX,ES:[SI]
 
 	MOV SI, ES:[SI+4] 
+	CMP SI,VACIO;AREA_DE_MEMORIA[pos] != VACIO
+		JE salto_ejec_der_suma
 	PUSH AX
 	MOV AX,6
 	MUL SI
+	MOV SI,AX
 	POP AX
 
 	CALL calcular_suma_dinamico
+
+	salto_ejec_der_suma:
 
 	MOV SI, [BP+2] ;retoma contexto
 	
 	MOV SI, ES:[SI+2] 
+
+	CMP SI,VACIO;AREA_DE_MEMORIA[pos] != VACIO
+		JE salto_ejec_izq_suma
+
 	PUSH AX
 	MOV AX,6
 	MUL SI
+	MOV SI,AX
 	POP AX
 
 	CALL calcular_suma_dinamico
+	
+	salto_ejec_izq_suma:
 
 	fin_suma_dinamica:
 		POP BP
@@ -489,7 +515,7 @@ calcular_suma_estatico PROC
 
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	fin_suma_estatica
-	CMP ES:[SI], 0x8000
+	CMP ES:[SI], VACIO
 		JE fin_suma_estatica
 	
 	ADD AX,ES:[SI]
@@ -523,7 +549,7 @@ imprimir_arbol_dinamico PROC
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	finalizar_recursion_imprimir_dinamico
 
-	CMP ES:[SI],0x8000	
+	CMP ES:[SI],VACIO	
 		JE	finalizar_recursion_imprimir_dinamico
 	
 	CMP AX, 1 ; mayor a menor
@@ -534,13 +560,16 @@ imprimir_arbol_dinamico PROC
 	imprimir_menor_a_mayor_dinamico:
 
 		MOV SI, ES:[SI+2] 
+		CMP SI,VACIO;pos != VACIO
+			JE salto_ejec_izq_imprimir_menor
 		PUSH AX
 		MOV AX,6
 		MUL SI
+		MOV SI,AX
 		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
-		
+		salto_ejec_izq_imprimir_menor:
 		PUSH AX
 		MOV SI, [BP+2];sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
@@ -548,24 +577,33 @@ imprimir_arbol_dinamico PROC
 		POP AX
 		
 		MOV SI, ES:[SI+4] 
+		CMP SI,VACIO;pos != VACIO
+			JE salto_ejec_der_imprimir_menor
+
 		PUSH AX
 		MOV AX,6
 		MUL SI
+		MOV SI,AX
 		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
+		salto_ejec_der_imprimir_menor:
 
 		JMP finalizar_recursion_imprimir_dinamico
 	imprimir_mayor_a_menor_dinamico:
 		
 		MOV SI, ES:[SI+4] 
+		CMP SI,VACIO;pos != VACIO
+			JE salto_ejec_der_imprimir_mayor
+
 		PUSH AX
 		MOV AX,6
 		MUL SI
+		MOV SI,AX
 		POP AX
 		
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+2],orden);
-	
+		salto_ejec_der_imprimir_mayor:
 		PUSH AX
 		MOV SI, [BP+2] ;sigue del índice con la ejecución del stack correspondiente
 		MOV AX, ES:[SI]
@@ -573,13 +611,17 @@ imprimir_arbol_dinamico PROC
 		POP AX
 
 		MOV SI, ES:[SI+2] 
+		CMP SI,VACIO;pos != VACIO
+			JE salto_ejec_izq_imprimir_mayor
+
 		PUSH AX
 		MOV AX,6
 		MUL SI
+		MOV SI,AX
 		POP AX
 
 		CALL imprimir_arbol_dinamico;imprimirArbolDinamico(3*AREA_DE_MEMORIA[pos+1],orden);
-
+	salto_ejec_izq_imprimir_mayor:
 	finalizar_recursion_imprimir_dinamico:
 		POP BP
 		POP SI
@@ -599,7 +641,7 @@ imprimir_arbol_estatico PROC;1 mayor a menor, 0 menor a mayor (5)
 
 	CMP SI,AREA_MEMORIA_BYTES	
 		JG	finalizar_recursion_imprimir
-	CMP ES:[SI],0x8000	
+	CMP ES:[SI],VACIO	
 		JE	finalizar_recursion_imprimir
 	
 	CMP AX, 1 ; mayor a menor
@@ -660,7 +702,7 @@ imprimir_memoria_din_est:  ;iterativo (sirve dinámico y estático), se iniciali
 		JMP menuSeleccion
 
 inicializar_memoria: ;iterativo (sirve dinámico y estático)
-	MOV ES:[SI],0x8000
+	MOV ES:[SI],VACIO
 	ADD SI,2;pasos de offset 2 bytes
 	CMP SI,AREA_MEMORIA_BYTES;compara si ha llenado toda el area de memoria
 		JLE inicializar_memoria 
@@ -678,7 +720,22 @@ fin:
 	OUT PUERTO_LOG,AX
 
 .ports ; Definición de puertos
-20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
+
+;testErrores
+;20: 1,2,1,-1,5,-1,5,4,6,-1,244,-5,255
+;testAltura
+;20: 1,0,3,1,1,3,1,0,2,4,3,1,1,2,5,3,1,0,2,100,2,128,2,60,2,40,2,20,2,22,3,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,3,255
+;testMemoria
+;20: 1,0,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,1,1,2,5,2,-4,2,-10,2,-80,2,60,6,0,6,1,6,10,255
+;testSuma
+;20: 1,0,2,100,2,200,2,50,2,30,2,150,4,1,1,2,102,2,202,2,52,2,32,2,152,4,255
+;testImprimir
+;20: 1,0,5,1,1,1,5,1,1,0,2,4,5,1,1,1,2,5,5,1,1,0,2,100,2,128,2,60,2,40,2,20,2,22,5,1,5,0,1,1,2,50,2,40,2,30,2,45,2,46,2,47,2,48,5,0,5,1,255
+;agregarNodoDinamico
+;20: 1,1,2,5,2,-5,2,-4,2,8,6,10,255
+;agregarNodoEstatico
+;20: 1,0,2,5,2,-1,2,5,2,7,2,8,2,9,2,10,2,11,2,12,2,13,2,14,2,15,2,16,2,17,2,18,255
+
 .interrupts ; Manejadores de interrupciones
 ; Ejemplo interrupcion del timer
 ;!INT 8 1
