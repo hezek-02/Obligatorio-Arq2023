@@ -1,3 +1,3 @@
-# arqui.practicos.en.c
+# Arquitectura de computadoras
 
-Prácticos en C de Arquitectura de Computadoras
+Obligatorio2023, y algunos ejercicios extra
